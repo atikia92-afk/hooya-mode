@@ -4,7 +4,7 @@
   const STORAGE = 'hooya-catalog-workspace-v1';
   const API = 'https://api.github.com/repos/atikia92-afk/hooya-mode/contents/docs/products.json';
   let catalog, baseline, statusFilter = 'all', inventoryOnly = false, view = 'table', selected = new Set(), toastTimer;
-  let editingId = null, editingImage = '', editorSnapshot = '', uploading = false, publishing = false, publishedMessage = '';
+  let editingId = null, editingImage = '', editingImages = [], editorSnapshot = '', uploading = false, publishing = false, publishedMessage = '';
   const clone = value => JSON.parse(JSON.stringify(value));
   const icon = name => `<svg aria-hidden="true"><use href="#i-${name}"/></svg>`;
   const lowStock = p => p.status !== 'archived' && (p.stock === null || p.stock < 3);
@@ -75,7 +75,7 @@
     return {
       id:editingId || 'product-'+crypto.randomUUID(), sku:String(f.get('sku')).trim(), name:String(f.get('name')).trim(),
       kind:f.get('kind'), type:String(f.get('type')).trim(), story:f.get('story'), tag:String(f.get('tag')).trim(),
-      photo:Number($('#sample-photo').value), image:editingImage, colors:String(f.get('colors')).split(/[,،]/).map(s=>s.trim()).filter(Boolean),
+      photo:Number($('#sample-photo').value), image:editingImage, images:editingImage?[editingImage,...editingImages.slice(1)]:[], colors:String(f.get('colors')).split(/[,،]/).map(s=>s.trim()).filter(Boolean),
       description:String(f.get('description')).trim(), price:f.get('price')===''?null:Number(f.get('price')), stock:f.get('stock')===''?null:Number(f.get('stock')),
       sizes:f.getAll('size'), status:f.get('status'), updatedAt:existing?.updatedAt || ''
     };
@@ -89,7 +89,7 @@
   function openEditor(id) {
     if (!catalog || publishing) return;
     const p=catalog.products.find(p=>p.id===id) || {name:'',sku:'',kind:'vest',type:'',story:'myth',tag:'',description:'',price:null,stock:null,sizes:['M'],colors:[],status:'draft',photo:0,image:''};
-    editingId=id||null; editingImage=p.image;
+    editingId=id||null; editingImage=p.image; editingImages=H.images(p).slice();
     $('#product-form').reset(); $('#editor-title').textContent=id?'ویرایش '+p.name:'محصول جدید';
     for (const field of ['name','sku','kind','type','story','tag','description','price','stock','status']) $('#'+field).value=p[field]??'';
     $('#colors').value=p.colors.join(', '); $('#sample-photo').value=p.photo; $('#image-url').value=p.image.startsWith('https://')?p.image:'';

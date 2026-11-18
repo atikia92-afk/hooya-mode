@@ -6,7 +6,12 @@
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const normalize = value => String(value).replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/[‌ٔ]/g,'').toLowerCase();
   const number = value => new Intl.NumberFormat('fa-IR').format(value);
-  const safeImage = value => typeof value === 'string' && (value === '' || /^https:\/\/[^\s<>"']+$/i.test(value) || /^data:image\/(jpeg|png|webp);base64,[a-z0-9+/=]+$/i.test(value));
+  const localImage = value => typeof value === 'string' && /^assets\/products\/[a-z0-9-]+\/[a-z0-9-]+\.(jpg|jpeg|png|webp)$/i.test(value);
+  const safeImage = value => typeof value === 'string' && (value === '' || localImage(value) || /^https:\/\/[^\s<>"']+$/i.test(value) || /^data:image\/(jpeg|png|webp);base64,[a-z0-9+/=]+$/i.test(value));
+  const scriptUrl = typeof document === 'undefined' ? '' : document.currentScript?.src || '';
+  const assetBase = scriptUrl ? new URL('.',scriptUrl).href : '';
+  const imageUrl = value => localImage(value) && assetBase ? new URL(value,assetBase).href : value;
+  const images = p => Array.isArray(p.images) && p.images.length ? p.images : p.image ? [p.image] : [];
   function validate(catalog) {
     if (!catalog || catalog.schema !== 1 || typeof catalog.version !== 'string' || !Number.isFinite(Date.parse(catalog.version)) || !Array.isArray(catalog.products) || catalog.products.length > 250) throw Error('ساختار فایل محصولات معتبر نیست (حداکثر ۲۵۰ محصول).');
     const ids = new Set();
@@ -16,6 +21,7 @@
       for (const key of ['name','type','tag','description','sku']) if (typeof p[key] !== 'string' || p[key].length > (key === 'description' ? 3000 : 160)) throw Error('متن مشخصات محصول معتبر نیست.');
       if (!p.name.trim() || !Object.hasOwn(kinds,p.kind) || !Object.hasOwn(stories,p.story) || !Object.hasOwn(statuses,p.status)) throw Error('نام، دسته، روایت یا وضعیت محصول معتبر نیست.');
       if (!safeImage(p.image) || ![0,1,2].includes(p.photo)) throw Error('تصویر محصول معتبر نیست.');
+      if (p.images !== undefined && (!Array.isArray(p.images) || p.images.length > 12 || p.images.some(src => !src || !safeImage(src)) || (p.images.length && p.images[0] !== p.image))) throw Error('گالری تصاویر محصول معتبر نیست.');
       for (const key of ['price','stock']) if (p[key] !== null && (!Number.isSafeInteger(p[key]) || p[key] < 0 || p[key] > (key === 'stock' ? 1000000 : 1000000000000))) throw Error('قیمت یا موجودی معتبر نیست.');
       if (!Array.isArray(p.sizes) || !p.sizes.length || p.sizes.some(s => !['XS','S','M','L','XL','XXL','Free'].includes(s))) throw Error('حداقل یک اندازهٔ معتبر انتخاب کنید.');
       if (!Array.isArray(p.colors) || p.colors.length > 8 || p.colors.some(c => !/^#[a-f0-9]{6}$/i.test(c))) throw Error('کد رنگ معتبر نیست.');
@@ -25,7 +31,7 @@
     return catalog;
   }
   function photo(p, extra = '') {
-    return p.image && safeImage(p.image) ? `<img class="product-photo custom-photo ${extra}" src="${escape(p.image)}" alt="${escape(p.name)}" loading="lazy">` : `<div class="product-photo photo-${p.photo} ${extra}" role="img" aria-label="${escape(p.name)}"></div>`;
+    return p.image && safeImage(p.image) ? `<img class="product-photo custom-photo ${extra}" src="${escape(imageUrl(p.image))}" alt="${escape(p.name)}" loading="lazy">` : `<div class="product-photo photo-${p.photo} ${extra}" role="img" aria-label="${escape(p.name)}"></div>`;
   }
-  window.Hooya = {kinds, stories, statuses, escape, normalize, number, safeImage, validate, photo};
+  window.Hooya = {kinds, stories, statuses, escape, normalize, number, safeImage, imageUrl, images, validate, photo};
 })();

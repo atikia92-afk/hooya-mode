@@ -1,9 +1,184 @@
 {
   "schema": 1,
-  "version": "2026-11-18T00:00:00.000Z",
+  "version": "2026-11-18T15:28:10.032Z",
   "products": [
-    {"id":"simorgh","sku":"HYA-001","name":"وستِ سیمرغ","kind":"vest","type":"وست لینن · ابریشم‌دوزی","story":"myth","tag":"روایتِ شاهنامه","photo":0,"image":"","colors":["#ddd0b8","#68503a"],"description":"برداشتی مفهومی از سیمرغ؛ پرنده‌ای که در قصه‌های شاهنامه، نشانی از خرد و پناه است. نقش پرها روی زمینهٔ روشن، قصه را به زبانی آرام بازمی‌گوید.","price":null,"stock":null,"sizes":["S","M","L"],"status":"published","updatedAt":"2026-11-18T00:00:00.000Z"},
-    {"id":"rakhsh","sku":"HYA-002","name":"کتِ رخش","kind":"jacket","type":"کت قهوه‌ای · نقشِ دست‌دوز","story":"horse","tag":"روایتِ رهایی","photo":1,"image":"","colors":["#584232","#a38b70"],"description":"برداشتی مفهومی از رخش و همراهی اسب و سوار؛ روایتی از حرکت، نجابت و رهایی. رنگ گرم و نقش اسب، نقطهٔ شروع این طراحی‌اند.","price":null,"stock":null,"sizes":["S","M","L"],"status":"published","updatedAt":"2026-11-18T00:00:00.000Z"},
-    {"id":"roots","sku":"HYA-003","name":"شومیزِ ریشه","kind":"blouse","type":"شومیز کرم · شماره‌دوزی","story":"folk","tag":"روایتِ ریشه‌ها","photo":2,"image":"","colors":["#eee7d8","#9b5c40"],"description":"برداشتی مفهومی از ریتم نقش‌های هندسی در هنرهای دست‌دوز ایران. تکرار کوک‌ها، یادآور پیوند میان نسل‌ها و زبان مشترک نخ و رنگ است.","price":null,"stock":null,"sizes":["S","M","L"],"status":"published","updatedAt":"2026-11-18T00:00:00.000Z"}
+    {
+      "id": "horse-brown",
+      "sku": "HYA-001",
+      "name": "وست اسب قهوه ای",
+      "kind": "vest",
+      "type": "وست · نقش اسب",
+      "story": "horse",
+      "tag": "روایت اسب",
+      "photo": 0,
+      "image": "assets/products/horse-brown/view-1.webp",
+      "images": [
+        "assets/products/horse-brown/view-1.webp",
+        "assets/products/horse-brown/view-2.webp",
+        "assets/products/horse-brown/view-3.webp"
+      ],
+      "colors": [
+        "#97785b"
+      ],
+      "description": "وست اسب قهوه‌ای با نقش دست‌دوز سر اسب. در گالری، تن‌خور، زاویهٔ دیگر لباس و نمای نزدیک دوخت را ببینید.",
+      "price": null,
+      "stock": null,
+      "sizes": [
+        "S",
+        "M",
+        "L"
+      ],
+      "status": "published",
+      "updatedAt": "2026-11-18T15:28:10.032Z"
+    },
+    {
+      "id": "horse-cream",
+      "sku": "HYA-002",
+      "name": "وست اسب کرم",
+      "kind": "vest",
+      "type": "وست · نقش اسب",
+      "story": "horse",
+      "tag": "روایت اسب",
+      "photo": 0,
+      "image": "assets/products/horse-cream/view-1.webp",
+      "images": [
+        "assets/products/horse-cream/view-1.webp",
+        "assets/products/horse-cream/view-2.webp",
+        "assets/products/horse-cream/view-3.webp"
+      ],
+      "colors": [
+        "#80545b"
+      ],
+      "description": "وست اسب با نقش دست‌دوز سر اسب. نمای تن‌خور و نمای نزدیک دوخت برای آشنایی با فرم و جزئیات لباس در گالری قرار دارند.",
+      "price": null,
+      "stock": null,
+      "sizes": [
+        "S",
+        "M",
+        "L"
+      ],
+      "status": "published",
+      "updatedAt": "2026-11-18T15:28:10.032Z"
+    },
+    {
+      "id": "nightingale",
+      "sku": "HYA-003",
+      "name": "وست بلبل",
+      "kind": "vest",
+      "type": "وست · دوخت پرنده و گل",
+      "story": "iran",
+      "tag": "نقش پرنده",
+      "photo": 0,
+      "image": "assets/products/nightingale/view-1.webp",
+      "images": [
+        "assets/products/nightingale/view-1.webp",
+        "assets/products/nightingale/view-2.webp",
+        "assets/products/nightingale/view-3.webp"
+      ],
+      "colors": [
+        "#b4a17b",
+        "#286498"
+      ],
+      "description": "وست بلبل با نقش پرندهٔ آبی و گل‌ها. نمای اصلی، تن‌خور کامل و جزئیات دوخت در گالری این لباس قرار گرفته‌اند.",
+      "price": null,
+      "stock": null,
+      "sizes": [
+        "S",
+        "M",
+        "L"
+      ],
+      "status": "published",
+      "updatedAt": "2026-11-18T15:28:10.032Z"
+    },
+    {
+      "id": "swallow",
+      "sku": "HYA-004",
+      "name": "وست پرستو",
+      "kind": "vest",
+      "type": "وست · نقش پرستو",
+      "story": "iran",
+      "tag": "نقش پرنده",
+      "photo": 0,
+      "image": "assets/products/swallow/view-1.webp",
+      "images": [
+        "assets/products/swallow/view-1.webp",
+        "assets/products/swallow/view-2.webp",
+        "assets/products/swallow/view-3.webp"
+      ],
+      "colors": [
+        "#c5b89d",
+        "#392f29"
+      ],
+      "description": "وست پرستو با نقش ظریف پرنده روی شاخه. گالری شامل نمای تن‌خور، نمای نزدیک لباس و برشی از جزئیات دوخت است.",
+      "price": null,
+      "stock": null,
+      "sizes": [
+        "S",
+        "M",
+        "L"
+      ],
+      "status": "published",
+      "updatedAt": "2026-11-18T15:28:10.032Z"
+    },
+    {
+      "id": "iris",
+      "sku": "HYA-005",
+      "name": "وست زنبق",
+      "kind": "vest",
+      "type": "وست · نقش زنبق",
+      "story": "iran",
+      "tag": "نقش گل",
+      "photo": 0,
+      "image": "assets/products/iris/view-1.webp",
+      "images": [
+        "assets/products/iris/view-1.webp",
+        "assets/products/iris/view-2.webp",
+        "assets/products/iris/view-3.webp"
+      ],
+      "colors": [
+        "#242322",
+        "#79518c"
+      ],
+      "description": "وست زنبق با نقش گل بنفش روی زمینهٔ تیره. دو نمای تن‌خور و یک نمای نزدیک از دوخت گل برای دیدن جزئیات انتخاب شده‌اند.",
+      "price": null,
+      "stock": null,
+      "sizes": [
+        "S",
+        "M",
+        "L"
+      ],
+      "status": "published",
+      "updatedAt": "2026-11-18T15:28:10.032Z"
+    },
+    {
+      "id": "malakeh-kheir",
+      "sku": "HYA-006",
+      "name": "وست ملکه خیر",
+      "kind": "vest",
+      "type": "وست · نقش دست‌دوز",
+      "story": "iran",
+      "tag": "مجموعهٔ هویا",
+      "photo": 0,
+      "image": "assets/products/malakeh-kheir/view-1.webp",
+      "images": [
+        "assets/products/malakeh-kheir/view-1.webp",
+        "assets/products/malakeh-kheir/view-2.webp",
+        "assets/products/malakeh-kheir/view-3.webp"
+      ],
+      "colors": [
+        "#bdb3a2",
+        "#70816a"
+      ],
+      "description": "وست ملکه خیر با نقش دست‌دوز پیکره و ترکیب رنگ‌های سبز و گرم. در گالری، تن‌خور لباس و جزئیات نقش و بافت دیده می‌شوند.",
+      "price": null,
+      "stock": null,
+      "sizes": [
+        "S",
+        "M",
+        "L"
+      ],
+      "status": "published",
+      "updatedAt": "2026-11-18T15:28:10.032Z"
+    }
   ]
 }
