@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "version": "2026-11-18T00:00:00.000Z",
+  "products": [
+    {"id":"simorgh","sku":"HYA-001","name":"وستِ سیمرغ","kind":"vest","type":"وست لینن · ابریشم‌دوزی","story":"myth","tag":"روایتِ شاهنامه","photo":0,"image":"","colors":["#ddd0b8","#68503a"],"description":"برداشتی مفهومی از سیمرغ؛ پرنده‌ای که در قصه‌های شاهنامه، نشانی از خرد و پناه است. نقش پرها روی زمینهٔ روشن، قصه را به زبانی آرام بازمی‌گوید.","price":null,"stock":null,"sizes":["S","M","L"],"status":"published","updatedAt":"2026-11-18T00:00:00.000Z"},
+    {"id":"rakhsh","sku":"HYA-002","name":"کتِ رخش","kind":"jacket","type":"کت قهوه‌ای · نقشِ دست‌دوز","story":"horse","tag":"روایتِ رهایی","photo":1,"image":"","colors":["#584232","#a38b70"],"description":"برداشتی مفهومی از رخش و همراهی اسب و سوار؛ روایتی از حرکت، نجابت و رهایی. رنگ گرم و نقش اسب، نقطهٔ شروع این طراحی‌اند.","price":null,"stock":null,"sizes":["S","M","L"],"status":"published","updatedAt":"2026-11-18T00:00:00.000Z"},
+    {"id":"roots","sku":"HYA-003","name":"شومیزِ ریشه","kind":"blouse","type":"شومیز کرم · شماره‌دوزی","story":"folk","tag":"روایتِ ریشه‌ها","photo":2,"image":"","colors":["#eee7d8","#9b5c40"],"description":"برداشتی مفهومی از ریتم نقش‌های هندسی در هنرهای دست‌دوز ایران. تکرار کوک‌ها، یادآور پیوند میان نسل‌ها و زبان مشترک نخ و رنگ است.","price":null,"stock":null,"sizes":["S","M","L"],"status":"published","updatedAt":"2026-11-18T00:00:00.000Z"}
+  ]
+}
