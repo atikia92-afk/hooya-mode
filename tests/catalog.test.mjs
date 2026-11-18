@@ -34,7 +34,7 @@ test('every published gallery image is packaged with the site',async()=>{
 async function setup(remote=clone(seed),putStatus=200,editId=null){
   const elements=new Map(),store=new Map(),calls=[],handlers=new Map();
   function element(key){if(!elements.has(key))elements.set(key,{value:'',textContent:'',innerHTML:'',hidden:false,disabled:false,open:false,childNodes:[{textContent:''}],classList:{add(){},remove(){},toggle(){}},reset(){},addEventListener(){},setAttribute(){},showModal(){this.open=true;},close(){this.open=false;}});return elements.get(key);}
-  const formValues={name:'A new garment',sku:'QA-NEW',kind:'vest',type:'Linen',story:'myth',tag:'Story',description:'A garment',price:'1200000',stock:'4',colors:'#aabbcc',status:'draft'};
+  const formValues={name:'A new garment',sku:'QA-NEW',kind:'vest',type:'Linen',story:'myth',tag:'Story',description:'A garment',price:'1200000',stock:'4','stock-M':'4',madeToOrder:'on',productionDays:'12',dispatchDays:'2',colors:'#aabbcc',status:'draft'};
   element('#sample-photo').value='0';element('#kind-filter').value='all';element('#collection-filter').value='all';element('#collection').value='mythical-creatures';element('#sort').value='newest';
   const context={window:{addEventListener(){}},document:{querySelector:element,querySelectorAll:()=>[],addEventListener(event,handler){handlers.set(event,handler);}},TextEncoder,TextDecoder,Intl,Date,URL,Blob,crypto:{randomUUID:()=> 'test-id'},setTimeout:()=>0,clearTimeout(){},btoa:x=>Buffer.from(x,'binary').toString('base64'),atob:x=>Buffer.from(x,'base64').toString('binary'),FormData:class{get(k){return k==='collection'?element('#collection').value:formValues[k]??'';}getAll(){return ['M'];}},localStorage:{getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v)},fetch:async(url,options={})=>{
     calls.push({url,options});if(url==='../products.json')return {ok:true,json:async()=>clone(seed)};
@@ -51,6 +51,7 @@ test('publishes UTF-8 catalog with SHA guard and never persists the token',async
   const s=await setup();await s.publish();const put=s.calls.find(c=>c.options.method==='PUT');assert.ok(put);
   const body=JSON.parse(put.options.body);assert.equal(body.sha,'baseline-sha');assert.equal(body.branch,'main');
   const catalog=JSON.parse(Buffer.from(body.content,'base64').toString('utf8'));assert.equal(catalog.products.length,seed.products.length+1);assert.equal(catalog.products[1].name,seed.products[0].name);assert.equal(catalog.products[0].status,'draft');assert.deepEqual(catalog.products[1].images,seed.products[0].images);
+  assert.deepEqual(catalog.products[0].sizeStock,{M:4});assert.equal(catalog.products[0].stock,4);assert.equal(catalog.products[0].madeToOrder,true);assert.equal(catalog.products[0].productionDays,12);assert.equal(catalog.products[0].dispatchDays,2);
   assert.ok(![...s.store.values()].join('').includes('fake-session-token'));assert.equal(s.element('#github-token').value,'');assert.equal(s.element('#publish-error').textContent,'');
 });
 test('concurrent catalog changes stop publication without a PUT',async()=>{
@@ -64,4 +65,12 @@ test('editing product metadata preserves its three-image gallery through publica
 });
 test('failed publication retains local changes and re-enables retry',async()=>{
   const s=await setup(clone(seed),403);await s.publish();assert.match(s.element('#publish-error').textContent,/دسترسی نوشتن/);const saved=JSON.parse([...s.store.values()][0]);assert.equal(saved.catalog.products.length,seed.products.length+1);assert.equal(saved.baseline.products.length,seed.products.length);assert.equal(s.element('#publish-submit').disabled,false);
+});
+
+test('size inventory and preparation times validate without inventing legacy stock',()=>{
+  const H=contract(),c=clone(seed),p=c.products[0];
+  p.sizeStock={S:0,M:2,L:null};p.stock=null;p.madeToOrder=true;p.productionDays=12;p.dispatchDays=2;
+  assert.equal(H.validate(c),c);
+  for(const mutate of [p=>p.sizeStock.M=-1,p=>p.sizeStock.M=1.5,p=>delete p.sizeStock.S,p=>p.sizeStock.XL=1,p=>p.stock=2,p=>p.productionDays=0,p=>p.dispatchDays=1.5,p=>p.madeToOrder='yes']){const bad=clone(c);mutate(bad.products[0]);assert.throws(()=>H.validate(bad));}
+  p.sizeStock.L=1;p.stock=3;assert.equal(H.validate(c),c);
 });

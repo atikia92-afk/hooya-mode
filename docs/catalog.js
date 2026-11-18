@@ -28,6 +28,15 @@
       if (p.images !== undefined && (!Array.isArray(p.images) || p.images.length > 12 || p.images.some(src => !src || !safeImage(src)) || (p.images.length && p.images[0] !== p.image))) throw Error('گالری تصاویر محصول معتبر نیست.');
       for (const key of ['price','stock']) if (p[key] !== null && (!Number.isSafeInteger(p[key]) || p[key] < 0 || p[key] > (key === 'stock' ? 1000000 : 1000000000000))) throw Error('قیمت یا موجودی معتبر نیست.');
       if (!Array.isArray(p.sizes) || !p.sizes.length || p.sizes.some(s => !['XS','S','M','L','XL','XXL','Free'].includes(s))) throw Error('حداقل یک اندازه معتبر انتخاب کنید.');
+      if (p.sizeStock !== undefined) {
+        if (!p.sizeStock || Array.isArray(p.sizeStock) || typeof p.sizeStock !== 'object' || Object.keys(p.sizeStock).length !== p.sizes.length || p.sizes.some(s=>!Object.hasOwn(p.sizeStock,s)) || Object.keys(p.sizeStock).some(s=>!p.sizes.includes(s))) throw Error('موجودی باید برای هر سایز انتخاب شده مشخص شود.');
+        const counts=Object.values(p.sizeStock);
+        if (counts.some(n=>n!==null&&(!Number.isSafeInteger(n)||n<0||n>1000000))) throw Error('موجودی هر سایز باید عدد صحیح و نامنفی باشد.');
+        const total=counts.every(n=>n!==null)?counts.reduce((a,b)=>a+b,0):null;
+        if (p.stock!==total) throw Error('موجودی کل با موجودی سایزها یکسان نیست.');
+      }
+      if (p.madeToOrder !== undefined && typeof p.madeToOrder !== 'boolean') throw Error('وضعیت دوخت سفارشی معتبر نیست.');
+      for (const key of ['productionDays','dispatchDays']) if (p[key]!==undefined && p[key]!==null && (!Number.isSafeInteger(p[key])||p[key]<1||p[key]>365)) throw Error('زمان آماده سازی باید از ۱ تا ۳۶۵ روز کاری باشد.');
       if (!Array.isArray(p.colors) || p.colors.length > 8 || p.colors.some(c => !/^#[a-f0-9]{6}$/i.test(c))) throw Error('کد رنگ معتبر نیست.');
       if (typeof p.updatedAt !== 'string' || !Number.isFinite(Date.parse(p.updatedAt))) throw Error('تاریخ محصول معتبر نیست.');
     }

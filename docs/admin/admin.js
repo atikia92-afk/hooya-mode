@@ -72,17 +72,22 @@
   }
   function readEditor() {
     const f = new FormData($('#product-form')), existing = catalog.products.find(p=>p.id===editingId);
+    const sizes=f.getAll('size'), sizeStock=Object.fromEntries(sizes.map(s=>{const value=f.get('stock-'+s);return [s,value===null||value===''?null:Number(value)];}));
+    const days=key=>{const value=f.get(key);return value===null||value===''?null:Number(value);};
     return {
       id:editingId || 'product-'+crypto.randomUUID(), sku:String(f.get('sku')).trim(), name:String(f.get('name')).trim(),
       kind:f.get('kind'), type:String(f.get('type')).trim(), story:existing?.story||'iran', collection:String(f.get('collection')||''), tag:String(f.get('tag')).trim(),
       photo:Number($('#sample-photo').value), image:editingImage, images:editingImage?[editingImage,...editingImages.slice(1)]:[], colors:String(f.get('colors')).split(/[,،]/).map(s=>s.trim()).filter(Boolean),
-      description:String(f.get('description')).trim(), price:f.get('price')===''?null:Number(f.get('price')), stock:f.get('stock')===''?null:Number(f.get('stock')),
-      sizes:f.getAll('size'), status:f.get('status'), updatedAt:existing?.updatedAt || ''
+      description:String(f.get('description')).trim(), price:f.get('price')===''?null:Number(f.get('price')),
+      stock:Object.values(sizeStock).every(n=>n!==null)?Object.values(sizeStock).reduce((a,b)=>a+b,0):null,
+      sizeStock, madeToOrder:f.get('madeToOrder')==='on', productionDays:days('productionDays'), dispatchDays:days('dispatchDays'),
+      sizes, status:f.get('status'), updatedAt:existing?.updatedAt || ''
     };
   }
   function editorFingerprint() { const p=readEditor(); delete p.id; return JSON.stringify(p); }
   function updatePreview() {
     const p=readEditor(); $('#preview-name').textContent=p.name||'نام محصول شما'; $('#preview-type').textContent=p.type||'جنس و هنر دوخت';
+    $('#stock').value=p.stock??'';
     $('#preview-price').textContent=p.price===null?'قیمت تعیین نشده':num(p.price)+' تومان';
     $('#editor-photo').innerHTML=H.photo({...p,name:p.name||'پیش‌نمایش محصول'});
   }
@@ -94,6 +99,8 @@
     for (const field of ['name','sku','kind','type','collection','tag','description','price','stock','status']) $('#'+field).value=p[field]??'';
     $('#colors').value=p.colors.join(', '); $('#sample-photo').value=p.photo; $('#image-url').value=p.image.startsWith('https://')?p.image:'';
     document.querySelectorAll('[name=size]').forEach(i=>i.checked=p.sizes.includes(i.value));
+    $('#madeToOrder').checked=!!p.madeToOrder; $('#productionDays').value=p.productionDays??''; $('#dispatchDays').value=p.dispatchDays??'';
+    renderSizeStock(p.sizeStock||{});
     $('#form-error').textContent=''; $('#image-file').value=''; updatePreview(); editorSnapshot=editorFingerprint(); $('#editor').showModal();
   }
   async function closeEditor() {
@@ -102,6 +109,11 @@
     $('#editor').close();
   }
   $('#product-form').addEventListener('input', updatePreview);
+  function renderSizeStock(values) {
+    const sizes=[...document.querySelectorAll('[name=size]:checked')].map(i=>i.value);
+    $('#size-stock').innerHTML=sizes.map(size=>`<label class="size-stock-row"><span dir="ltr">${esc(size)}</span><input name="stock-${esc(size)}" aria-label="موجودی آماده سایز ${esc(size)}" type="number" min="0" max="1000000" step="1" value="${values[size]??''}" placeholder="نامشخص"></label>`).join('');
+  }
+  document.querySelectorAll('[name=size]').forEach(input=>input.addEventListener('change',()=>{const values=Object.fromEntries([...document.querySelectorAll('#size-stock input')].map(i=>[i.name.slice(6),i.value]));renderSizeStock(values);updatePreview();}));
   $('#product-form').onsubmit=e=>{
     e.preventDefault(); if(uploading)return; $('#form-error').textContent='';
     try {
