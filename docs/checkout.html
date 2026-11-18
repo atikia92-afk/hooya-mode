@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>تکمیل خرید | هویا</title><link rel="stylesheet" href="styles.css?v=checkout-20261118"><link rel="stylesheet" href="checkout.css?v=checkout-20261118"></head>
+<body class="checkout-page">
+<div class="checkout-preview">پیش نمایش خرید · پرداخت و ثبت سفارش واقعی هنوز فعال نیست <button id="receipt-preview" type="button">دیدن نمونه تایید خرید ←</button></div>
+<header class="checkout-header"><a href="./?bag=1" class="back-link">→ بازگشت به سبد</a><a href="./" class="brand" aria-label="هویا، خانه"><svg class="wordmark" viewBox="220 900 1610 270" role="img" aria-label="HOOYA"><image href="assets/hooya-logo.jpg" width="2048" height="2048"/></svg></a><a href="https://wa.me/989010490260" target="_blank" rel="noopener noreferrer" class="help-link">کمک در خرید ↗</a></header>
+<main class="checkout-main" id="main">
+ <div class="checkout-heading"><span class="eyebrow">YOUR HOOYA STORY</span><h1 id="step-title" tabindex="-1">تکمیل خرید</h1><p>چند قدم تا روایت تازه تو.</p></div>
+ <ol class="checkout-steps" aria-label="مراحل خرید"><li><a href="./?bag=1">۱. سبد خرید</a></li><li id="step-details" aria-current="step">۲. اطلاعات و ارسال</li><li id="step-review">۳. بررسی و پرداخت</li></ol>
+ <p id="checkout-error" class="checkout-error" role="alert" hidden></p>
+ <section id="checkout-empty" class="checkout-empty" hidden><h2>سبد خریدت خالی است.</h2><p>از جهان هویا، لباس مورد علاقه ات را انتخاب کن.</p><a class="button" href="./#collection">دیدن مجموعه</a></section>
+ <div id="checkout-layout" class="checkout-layout" hidden>
+  <div>
+   <section id="details-panel" aria-labelledby="details-title">
+    <h2 id="details-title">اطلاعات گیرنده</h2><p class="section-hint">بدون نیاز به ساخت حساب کاربری</p>
+    <form id="customer-form" novalidate>
+     <div class="checkout-fields">
+      <div class="checkout-field full"><label for="name">نام و نام خانوادگی</label><input id="name" autocomplete="shipping name" required maxlength="100" aria-describedby="error-name"><small id="error-name" class="field-error"></small></div>
+      <div class="checkout-field full"><label for="phone">شماره موبایل</label><input id="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="shipping tel-national" placeholder="09xxxxxxxxx" required maxlength="20" aria-describedby="error-phone"><small id="error-phone" class="field-error"></small></div>
+      <div class="checkout-field"><label for="province">استان</label><input id="province" autocomplete="shipping address-level1" required maxlength="60" aria-describedby="error-province"><small id="error-province" class="field-error"></small></div>
+      <div class="checkout-field"><label for="city">شهر</label><input id="city" autocomplete="shipping address-level2" required maxlength="60" aria-describedby="error-city"><small id="error-city" class="field-error"></small></div>
+      <div class="checkout-field full"><label for="address">آدرس کامل، پلاک و واحد</label><textarea id="address" autocomplete="shipping street-address" required maxlength="500" rows="3" aria-describedby="error-address"></textarea><small id="error-address" class="field-error"></small></div>
+      <div class="checkout-field full"><label for="postcode">کد پستی</label><input id="postcode" inputmode="numeric" dir="ltr" autocomplete="shipping postal-code" required maxlength="15" aria-describedby="error-postcode"><small id="error-postcode" class="field-error"></small></div>
+      <div class="checkout-field full"><label for="notes">توضیحات سفارش <span>اختیاری</span></label><textarea id="notes" maxlength="500" rows="2" placeholder="اگر نکته ای درباره تحویل سفارش داری، اینجا بنویس."></textarea></div>
+     </div>
+     <section class="delivery-box" aria-labelledby="delivery-title"><h3 id="delivery-title">ارسال به آدرس شما</h3><p><strong>هزینه ارسال پس کرایه است.</strong> هزینه حمل در مبلغ پرداختی سایت نیست و هنگام تحویل، جداگانه به شرکت حمل پرداخت می شود. مبلغ آن به مقصد و تعرفه شرکت حمل بستگی دارد.</p><label class="delivery-consent"><input id="shipping-consent" type="checkbox" required aria-describedby="error-consent"><span>از پرداخت جداگانه هزینه ارسال هنگام تحویل مطلع هستم.</span></label><small id="error-consent" class="field-error"></small></section>
+     <button class="button checkout-next" type="submit">بررسی سفارش ←</button>
+     <p class="checkout-footnote">در این پیش نمایش از اطلاعات آزمایشی استفاده کن. اطلاعات فرم به جایی ارسال نمی شود و با بستن صفحه از دست می رود.</p>
+    </form>
+   </section>
+   <section id="review-panel" aria-labelledby="review-title" hidden><h2 id="review-title">بررسی نهایی سفارش</h2><p class="section-hint">اطلاعات و زمان آماده سازی را بررسی کن.</p><div class="review-address"><div class="review-heading"><h3>گیرنده و آدرس</h3><button type="button" id="edit-customer" class="text-link">ویرایش</button></div><div id="customer-review"></div></div><div class="delivery-box"><h3>ارسال با پس کرایه</h3><p>هزینه حمل هنگام تحویل جداگانه پرداخت می شود.</p><p id="preparation-note"></p></div><div id="purchase-blockers" class="purchase-blockers" role="status"></div><button class="button checkout-next" type="button" disabled>پرداخت آنلاین — به زودی</button><p class="checkout-footnote">این نسخه به درگاه متصل نیست و سفارش واقعی ثبت نمی کند.</p></section>
+  </div>
+  <aside class="order-summary" aria-labelledby="summary-title"><div class="summary-title"><h2 id="summary-title">انتخاب های تو</h2><a href="./?bag=1">ویرایش سبد</a></div><div id="summary-products"></div><dl class="summary-totals"><div><dt>جمع لباس ها</dt><dd id="subtotal">—</dd></div><div><dt>ارسال</dt><dd>پس کرایه</dd></div><div class="summary-payable"><dt>مبلغ پرداختی در سایت</dt><dd id="payable">—</dd></div></dl><p class="summary-note">هزینه حمل جداگانه، هنگام تحویل پرداخت می شود.</p><a class="checkout-support" href="https://wa.me/989010490260" target="_blank" rel="noopener noreferrer">برای انتخاب سایز یا پیگیری، با هویا در ارتباط باش ↗</a></aside>
+ </div>
+</main>
+<footer class="checkout-footer"><span>HOOYA · قصه هایی برای پوشیدن</span><a href="contact.html">ارتباط با هویا</a></footer>
+<dialog id="receipt-dialog" class="receipt-dialog" aria-labelledby="receipt-title"><form method="dialog"><button class="close" aria-label="بستن نمونه رسید">×</button></form><span class="sample-badge">نمونه صفحه تایید · پرداختی انجام نشده است</span><span class="eyebrow">THANK YOU FOR YOUR STORY</span><h2 id="receipt-title">سفارش شما ثبت شد.</h2><p>در خرید واقعی، پس از تایید پرداخت، شماره سفارش و رسید در این صفحه نمایش داده می شود.</p><dl><div><dt>شماره سفارش</dt><dd>پس از ثبت واقعی</dd></div><div><dt>شماره پیگیری پرداخت</dt><dd>پس از تایید درگاه</dd></div><div><dt>زمان آماده سازی</dt><dd>مطابق لباس های انتخاب شده</dd></div><div><dt>ارسال</dt><dd>به آدرس گیرنده · پس کرایه</dd></div></dl><p class="receipt-note">در نسخه عملیاتی، تایید سفارش برای مشتری و اعلان سفارش جدید برای مدیر ارسال می شود.</p><form method="dialog"><button class="button">بازگشت به پیش نمایش</button></form></dialog>
+<noscript><p class="checkout-error">برای نمایش سبد و فرم خرید، جاوااسکریپت مرورگر را فعال کن.</p></noscript>
+<script src="catalog.js?v=checkout-20261118"></script><script src="cart.js?v=checkout-20261118"></script><script src="checkout.js?v=checkout-20261118"></script>
+</body></html>
