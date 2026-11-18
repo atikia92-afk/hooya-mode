@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "version": "2026-11-18T15:44:41.797Z",
+  "version": "2026-11-18T16:59:29.997Z",
   "products": [
     {
       "id": "horse-brown",
@@ -29,7 +29,8 @@
         "L"
       ],
       "status": "published",
-      "updatedAt": "2026-11-18T15:44:41.797Z"
+      "updatedAt": "2026-11-18T16:59:29.997Z",
+      "collection": "mythical-creatures"
     },
     {
       "id": "horse-cream",
@@ -58,7 +59,8 @@
         "L"
       ],
       "status": "published",
-      "updatedAt": "2026-11-18T15:44:41.797Z"
+      "updatedAt": "2026-11-18T16:59:29.997Z",
+      "collection": "mythical-creatures"
     },
     {
       "id": "nightingale",
@@ -88,7 +90,8 @@
         "L"
       ],
       "status": "published",
-      "updatedAt": "2026-11-18T15:44:41.797Z"
+      "updatedAt": "2026-11-18T16:59:29.997Z",
+      "collection": "persian-garden"
     },
     {
       "id": "swallow",
@@ -118,7 +121,8 @@
         "L"
       ],
       "status": "published",
-      "updatedAt": "2026-11-18T15:44:41.797Z"
+      "updatedAt": "2026-11-18T16:59:29.997Z",
+      "collection": "persian-garden"
     },
     {
       "id": "iris",
@@ -148,7 +152,8 @@
         "L"
       ],
       "status": "published",
-      "updatedAt": "2026-11-18T15:44:41.797Z"
+      "updatedAt": "2026-11-18T16:59:29.997Z",
+      "collection": "persian-garden"
     },
     {
       "id": "malakeh-kheir",
@@ -178,7 +183,8 @@
         "L"
       ],
       "status": "published",
-      "updatedAt": "2026-11-18T15:44:41.797Z"
+      "updatedAt": "2026-11-18T16:59:29.997Z",
+      "collection": "legendary-women"
     }
   ]
 }

@@ -2,6 +2,8 @@
 (() => {
   const kinds = {vest:'وست', jacket:'کت', blouse:'شومیز'};
   const stories = {myth:'شاهنامه و اساطیر', horse:'اسب و سوارکاری', folk:'روایت‌های اقوام', iran:'نمادهای ایران'};
+  const collections = {'persian-garden':'باغ ایرانی','legendary-women':'زنان افسانه ای','mythical-creatures':'موجودات اساطیری'};
+  const collectionOf = p => p.collection || '';
   const statuses = {published:'منتشرشده', draft:'پیش‌نویس', archived:'بایگانی'};
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const normalize = value => String(value).replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed\u200c]/g,'').toLowerCase();
@@ -20,6 +22,8 @@
       ids.add(p.id);
       for (const key of ['name','type','tag','description','sku']) if (typeof p[key] !== 'string' || p[key].length > (key === 'description' ? 3000 : 160)) throw Error('متن مشخصات محصول معتبر نیست.');
       if (!p.name.trim() || !Object.hasOwn(kinds,p.kind) || !Object.hasOwn(stories,p.story) || !Object.hasOwn(statuses,p.status)) throw Error('نام، دسته، روایت یا وضعیت محصول معتبر نیست.');
+      if (p.collection !== undefined && (typeof p.collection !== 'string' || (p.collection !== '' && !Object.hasOwn(collections,p.collection)))) throw Error('کالکشن محصول معتبر نیست.');
+      if (p.status === 'published' && p.collection === '') throw Error('برای انتشار، کالکشن محصول را انتخاب کنید.');
       if (!safeImage(p.image) || ![0,1,2].includes(p.photo)) throw Error('تصویر محصول معتبر نیست.');
       if (p.images !== undefined && (!Array.isArray(p.images) || p.images.length > 12 || p.images.some(src => !src || !safeImage(src)) || (p.images.length && p.images[0] !== p.image))) throw Error('گالری تصاویر محصول معتبر نیست.');
       for (const key of ['price','stock']) if (p[key] !== null && (!Number.isSafeInteger(p[key]) || p[key] < 0 || p[key] > (key === 'stock' ? 1000000 : 1000000000000))) throw Error('قیمت یا موجودی معتبر نیست.');
@@ -33,5 +37,5 @@
   function photo(p, extra = '') {
     return p.image && safeImage(p.image) ? `<img class="product-photo custom-photo ${extra}" src="${escape(imageUrl(p.image))}" alt="${escape(p.name)}" loading="lazy">` : `<div class="product-photo photo-${p.photo} ${extra}" role="img" aria-label="${escape(p.name)}"></div>`;
   }
-  window.Hooya = {kinds, stories, statuses, escape, normalize, number, safeImage, imageUrl, images, validate, photo};
+  window.Hooya = {kinds, stories, collections, collectionOf, statuses, escape, normalize, number, safeImage, imageUrl, images, validate, photo};
 })();

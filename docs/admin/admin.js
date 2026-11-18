@@ -24,8 +24,8 @@
     catch { toast('فضای ذخیره مرورگر کافی نیست. نسخه پشتیبان دریافت کنید و حجم تصاویر را کاهش دهید.'); return false; }
   }
   function filtered() {
-    const term = H.normalize($('#search').value.trim()), kind = $('#kind-filter').value;
-    const list = catalog.products.filter(p => (statusFilter === 'all' || p.status === statusFilter) && (!inventoryOnly || lowStock(p)) && (kind === 'all' || p.kind === kind) && (!term || H.normalize(p.name+' '+p.sku+' '+p.type).includes(term)));
+    const term = H.normalize($('#search').value.trim()), kind = $('#kind-filter').value, collection = $('#collection-filter').value;
+    const list = catalog.products.filter(p => (statusFilter === 'all' || p.status === statusFilter) && (!inventoryOnly || lowStock(p)) && (kind === 'all' || p.kind === kind) && (collection === 'all' || H.collectionOf(p) === collection) && (!term || H.normalize(p.name+' '+p.sku+' '+p.type+' '+(H.collections[H.collectionOf(p)]||'')).includes(term)));
     const sort = $('#sort').value;
     list.sort((a,b) => sort === 'name' ? a.name.localeCompare(b.name,'fa') : sort === 'price' ? (a.price ?? Infinity)-(b.price ?? Infinity) : b.updatedAt.localeCompare(a.updatedAt));
     return list;
@@ -60,7 +60,7 @@
       selectAll.onchange = () => { selected = selectAll.checked ? new Set(list.map(p=>p.id)) : new Set(); render(); };
     }
   }
-  function resetFilters() { statusFilter='all'; inventoryOnly=false; $('#search').value=''; $('#kind-filter').value='all'; selected.clear(); render(); }
+  function resetFilters() { statusFilter='all'; inventoryOnly=false; $('#search').value=''; $('#kind-filter').value='all'; $('#collection-filter').value='all'; selected.clear(); render(); }
   function ask(title, copy, accept='ادامه') {
     $('#confirm-title').textContent=title; $('#confirm-copy').textContent=copy; $('#confirm-yes').textContent=accept;
     $('#confirm-dialog').showModal();
@@ -74,7 +74,7 @@
     const f = new FormData($('#product-form')), existing = catalog.products.find(p=>p.id===editingId);
     return {
       id:editingId || 'product-'+crypto.randomUUID(), sku:String(f.get('sku')).trim(), name:String(f.get('name')).trim(),
-      kind:f.get('kind'), type:String(f.get('type')).trim(), story:f.get('story'), tag:String(f.get('tag')).trim(),
+      kind:f.get('kind'), type:String(f.get('type')).trim(), story:existing?.story||'iran', collection:String(f.get('collection')||''), tag:String(f.get('tag')).trim(),
       photo:Number($('#sample-photo').value), image:editingImage, images:editingImage?[editingImage,...editingImages.slice(1)]:[], colors:String(f.get('colors')).split(/[,،]/).map(s=>s.trim()).filter(Boolean),
       description:String(f.get('description')).trim(), price:f.get('price')===''?null:Number(f.get('price')), stock:f.get('stock')===''?null:Number(f.get('stock')),
       sizes:f.getAll('size'), status:f.get('status'), updatedAt:existing?.updatedAt || ''
@@ -88,10 +88,10 @@
   }
   function openEditor(id) {
     if (!catalog || publishing) return;
-    const p=catalog.products.find(p=>p.id===id) || {name:'',sku:'',kind:'vest',type:'',story:'myth',tag:'',description:'',price:null,stock:null,sizes:['M'],colors:[],status:'draft',photo:0,image:''};
+    const p=catalog.products.find(p=>p.id===id) || {name:'',sku:'',kind:'vest',type:'',story:'iran',collection:'',tag:'',description:'',price:null,stock:null,sizes:['M'],colors:[],status:'draft',photo:0,image:''};
     editingId=id||null; editingImage=p.image; editingImages=H.images(p).slice();
     $('#product-form').reset(); $('#editor-title').textContent=id?'ویرایش '+p.name:'محصول جدید';
-    for (const field of ['name','sku','kind','type','story','tag','description','price','stock','status']) $('#'+field).value=p[field]??'';
+    for (const field of ['name','sku','kind','type','collection','tag','description','price','stock','status']) $('#'+field).value=p[field]??'';
     $('#colors').value=p.colors.join(', '); $('#sample-photo').value=p.photo; $('#image-url').value=p.image.startsWith('https://')?p.image:'';
     document.querySelectorAll('[name=size]').forEach(i=>i.checked=p.sizes.includes(i.value));
     $('#form-error').textContent=''; $('#image-file').value=''; updatePreview(); editorSnapshot=editorFingerprint(); $('#editor').showModal();
@@ -147,7 +147,7 @@
   $('#editor').addEventListener('cancel',e=>{e.preventDefault();closeEditor();});
   $('#publish-dialog').addEventListener('cancel',e=>{ if(publishing)e.preventDefault();else $('#github-token').value=''; });
   $('#add-product').onclick=()=>openEditor(); $('#side-add').onclick=()=>openEditor();
-  $('#search').oninput=render; $('#kind-filter').onchange=render; $('#sort').onchange=render;
+  $('#search').oninput=render; $('#kind-filter').onchange=render; $('#collection-filter').onchange=render; $('#sort').onchange=render;
   document.querySelectorAll('[data-status]').forEach(b=>b.onclick=()=>{statusFilter=b.dataset.status;inventoryOnly=false;selected.clear();render();});
   $('.tabs').addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const tabs=[...document.querySelectorAll('[data-status]')];let i=tabs.indexOf(document.activeElement);i=e.key==='Home'?0:e.key==='End'?tabs.length-1:(i+(e.key==='ArrowLeft'?1:-1)+tabs.length)%tabs.length;tabs[i].click();tabs[i].focus();});
   $('#nav-inventory').onclick=()=>{resetFilters();inventoryOnly=true;render();}; $('#nav-drafts').onclick=()=>{resetFilters();statusFilter='draft';render();};

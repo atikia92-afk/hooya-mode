@@ -8,6 +8,11 @@ const seed=JSON.parse(await readFile(new URL('../docs/products.json',import.meta
 const clone=x=>JSON.parse(JSON.stringify(x));
 function contract(scriptUrl){const context={window:{},TextEncoder,Intl,URL};if(scriptUrl)context.document={currentScript:{src:scriptUrl}};vm.runInNewContext(source,context);return context.window.Hooya;}
 test('initial catalog validates without inventing prices or stock',()=>{const H=contract();assert.equal(H.validate(seed),seed);assert.ok(seed.products.every(p=>p.price===null&&p.stock===null));});
+test('products use the three approved collections and reject unknown collection names',()=>{
+  const H=contract();assert.equal(Object.keys(H.collections).length,3);assert.ok(seed.products.every(p=>Object.hasOwn(H.collections,p.collection)));
+  for(const value of ['hooya-world','constructor','unknown','',null,{},['persian-garden']]){const c=clone(seed);c.products[0].collection=value;assert.throws(()=>H.validate(c));}
+  const legacy=clone(seed);delete legacy.products[0].collection;assert.equal(H.validate(legacy),legacy);
+});
 test('rejects unsafe images, unknown enums, duplicate IDs and fractional inventory',()=>{
   const H=contract();
   for(const mutate of [p=>p.image='javascript:alert(1)',p=>p.image='data:image/svg+xml;base64,abc',p=>p.kind='toString',p=>p.status='constructor',p=>p.stock=1.5,p=>p.sizes=[],p=>p.colors=['red;display:none']]){const c=clone(seed);mutate(c.products[0]);assert.throws(()=>H.validate(c));}
@@ -30,8 +35,8 @@ async function setup(remote=clone(seed),putStatus=200,editId=null){
   const elements=new Map(),store=new Map(),calls=[],handlers=new Map();
   function element(key){if(!elements.has(key))elements.set(key,{value:'',textContent:'',innerHTML:'',hidden:false,disabled:false,open:false,childNodes:[{textContent:''}],classList:{add(){},remove(){},toggle(){}},reset(){},addEventListener(){},setAttribute(){},showModal(){this.open=true;},close(){this.open=false;}});return elements.get(key);}
   const formValues={name:'A new garment',sku:'QA-NEW',kind:'vest',type:'Linen',story:'myth',tag:'Story',description:'A garment',price:'1200000',stock:'4',colors:'#aabbcc',status:'draft'};
-  element('#sample-photo').value='0';element('#kind-filter').value='all';element('#sort').value='newest';
-  const context={window:{addEventListener(){}},document:{querySelector:element,querySelectorAll:()=>[],addEventListener(event,handler){handlers.set(event,handler);}},TextEncoder,TextDecoder,Intl,Date,URL,Blob,crypto:{randomUUID:()=> 'test-id'},setTimeout:()=>0,clearTimeout(){},btoa:x=>Buffer.from(x,'binary').toString('base64'),atob:x=>Buffer.from(x,'base64').toString('binary'),FormData:class{get(k){return formValues[k]??'';}getAll(){return ['M'];}},localStorage:{getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v)},fetch:async(url,options={})=>{
+  element('#sample-photo').value='0';element('#kind-filter').value='all';element('#collection-filter').value='all';element('#collection').value='mythical-creatures';element('#sort').value='newest';
+  const context={window:{addEventListener(){}},document:{querySelector:element,querySelectorAll:()=>[],addEventListener(event,handler){handlers.set(event,handler);}},TextEncoder,TextDecoder,Intl,Date,URL,Blob,crypto:{randomUUID:()=> 'test-id'},setTimeout:()=>0,clearTimeout(){},btoa:x=>Buffer.from(x,'binary').toString('base64'),atob:x=>Buffer.from(x,'base64').toString('binary'),FormData:class{get(k){return k==='collection'?element('#collection').value:formValues[k]??'';}getAll(){return ['M'];}},localStorage:{getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v)},fetch:async(url,options={})=>{
     calls.push({url,options});if(url==='../products.json')return {ok:true,json:async()=>clone(seed)};
     if(options.method==='PUT')return{ok:putStatus===200,status:putStatus,json:async()=>({commit:{sha:'commit'}})};
     return{ok:true,json:async()=>({sha:'baseline-sha',encoding:'base64',content:Buffer.from(JSON.stringify(remote)).toString('base64')})};
@@ -55,7 +60,7 @@ test('editing product metadata preserves its three-image gallery through publica
   const p=seed.products[0],s=await setup(clone(seed),200,p.id);await s.publish();
   const body=JSON.parse(s.calls.find(c=>c.options.method==='PUT').options.body);
   const catalog=JSON.parse(Buffer.from(body.content,'base64').toString('utf8'));
-  const edited=catalog.products.find(x=>x.id===p.id);assert.deepEqual(edited.images,p.images);assert.equal(edited.image,p.image);assert.equal(catalog.products.length,seed.products.length);
+  const edited=catalog.products.find(x=>x.id===p.id);assert.deepEqual(edited.images,p.images);assert.equal(edited.image,p.image);assert.equal(edited.collection,p.collection);assert.equal(catalog.products.length,seed.products.length);
 });
 test('failed publication retains local changes and re-enables retry',async()=>{
   const s=await setup(clone(seed),403);await s.publish();assert.match(s.element('#publish-error').textContent,/دسترسی نوشتن/);const saved=JSON.parse([...s.store.values()][0]);assert.equal(saved.catalog.products.length,seed.products.length+1);assert.equal(saved.baseline.products.length,seed.products.length);assert.equal(s.element('#publish-submit').disabled,false);
