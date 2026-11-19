@@ -16,6 +16,7 @@
     document.querySelectorAll('[data-category]').forEach(a=>{a.hidden=a.dataset.category!=='all'&&!products.some(p=>p.kind===a.dataset.category);});
     document.querySelectorAll('.collection-tabs [data-collection]').forEach(b=>{const selected=b.dataset.collection===(currentCollection||'all');b.classList.toggle('selected',selected);b.setAttribute('aria-pressed',String(selected));});
     document.querySelectorAll('[data-collection-count]').forEach(span=>{span.textContent=H.number(span.dataset.collectionCount==='all'?products.length:products.filter(p=>H.collectionOf(p)===span.dataset.collectionCount).length);});
+    window.HooyaProductMotion?.sync($('#product-grid'));
   }
   function syncCollectionUrl(){const url=new URL(window.location.href);if(currentCollection)url.searchParams.set('collection',currentCollection);else url.searchParams.delete('collection');url.hash='collection';window.history.pushState(null,'',url);}
   function chooseCollection(id){if(id!=='all'&&!Object.hasOwn(H.collections,id))return;currentCollection=id==='all'?'':id;currentFilter='all';query='';$('#search-input').value='';syncCollectionUrl();render();$('#collection').scrollIntoView({behavior:'smooth'});}
