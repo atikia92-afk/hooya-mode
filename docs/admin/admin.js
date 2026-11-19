@@ -81,7 +81,7 @@
       description:String(f.get('description')).trim(), price:f.get('price')===''?null:Number(f.get('price')),
       stock:Object.values(sizeStock).every(n=>n!==null)?Object.values(sizeStock).reduce((a,b)=>a+b,0):null,
       sizeStock, madeToOrder:f.get('madeToOrder')==='on', productionDays:days('productionDays'), dispatchDays:days('dispatchDays'),
-      sizes, status:f.get('status'), updatedAt:existing?.updatedAt || ''
+      sizes, status:f.get('status'), createdAt:existing?.createdAt||existing?.updatedAt||'', updatedAt:existing?.updatedAt || ''
     };
   }
   function editorFingerprint() { const p=readEditor(); delete p.id; return JSON.stringify(p); }
@@ -117,7 +117,7 @@
   $('#product-form').onsubmit=e=>{
     e.preventDefault(); if(uploading)return; $('#form-error').textContent='';
     try {
-      const p=readEditor(); p.updatedAt=new Date().toISOString();
+      const p=readEditor(); p.updatedAt=new Date().toISOString();p.createdAt=p.createdAt||p.updatedAt;
       if (p.sku && catalog.products.some(x=>x.id!==p.id && H.normalize(x.sku)===H.normalize(p.sku))) throw Error('این کد قبلا برای محصول دیگری ثبت شده است.');
       const next=clone(catalog), index=next.products.findIndex(x=>x.id===p.id);
       if(index<0)next.products.unshift(p);else next.products[index]=p;

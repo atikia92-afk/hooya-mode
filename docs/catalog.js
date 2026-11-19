@@ -38,13 +38,15 @@
       if (p.madeToOrder !== undefined && typeof p.madeToOrder !== 'boolean') throw Error('وضعیت دوخت سفارشی معتبر نیست.');
       for (const key of ['productionDays','dispatchDays']) if (p[key]!==undefined && p[key]!==null && (!Number.isSafeInteger(p[key])||p[key]<1||p[key]>365)) throw Error('زمان آماده سازی باید از ۱ تا ۳۶۵ روز کاری باشد.');
       if (!Array.isArray(p.colors) || p.colors.length > 8 || p.colors.some(c => !/^#[a-f0-9]{6}$/i.test(c))) throw Error('کد رنگ معتبر نیست.');
+      if (p.createdAt!==undefined && (typeof p.createdAt!=='string'||!Number.isFinite(Date.parse(p.createdAt)))) throw Error('تاریخ ایجاد محصول معتبر نیست.');
       if (typeof p.updatedAt !== 'string' || !Number.isFinite(Date.parse(p.updatedAt))) throw Error('تاریخ محصول معتبر نیست.');
     }
     if (new TextEncoder().encode(JSON.stringify(catalog)).length > 900000) throw Error('حجم کاتالوگ زیاد است. برای عکس‌ها از لینک تصویر استفاده کنید یا تعداد تصاویر را کاهش دهید.');
     return catalog;
   }
+  const latest=(products,count=3)=>[...products].sort((a,b)=>(b.createdAt||b.updatedAt).localeCompare(a.createdAt||a.updatedAt)||b.sku.localeCompare(a.sku,'en',{numeric:true})).slice(0,count);
   function photo(p, extra = '') {
     return p.image && safeImage(p.image) ? `<img class="product-photo custom-photo ${extra}" src="${escape(imageUrl(p.image))}" alt="${escape(p.name)}" loading="lazy">` : `<div class="product-photo photo-${p.photo} ${extra}" role="img" aria-label="${escape(p.name)}"></div>`;
   }
-  window.Hooya = {kinds, stories, collections, collectionOf, statuses, escape, normalize, number, safeImage, imageUrl, images, validate, photo};
+  window.Hooya = {latest,kinds, stories, collections, collectionOf, statuses, escape, normalize, number, safeImage, imageUrl, images, validate, photo};
 })();

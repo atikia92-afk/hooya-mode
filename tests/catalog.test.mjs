@@ -8,6 +8,14 @@ const seed=JSON.parse(await readFile(new URL('../docs/products.json',import.meta
 const clone=x=>JSON.parse(JSON.stringify(x));
 function contract(scriptUrl){const context={window:{},TextEncoder,Intl,URL};if(scriptUrl)context.document={currentScript:{src:scriptUrl}};vm.runInNewContext(source,context);return context.window.Hooya;}
 test('initial catalog validates without inventing prices or stock',()=>{const H=contract();assert.equal(H.validate(seed),seed);assert.ok(seed.products.every(p=>p.price===null&&p.stock===null));});
+test('latest products keep their launch order when old product metadata is edited',()=>{
+  const H=contract(),products=clone(seed.products);
+  products[0].updatedAt='2099-01-01T00:00:00Z';
+  const latest=H.latest(products,3);
+  assert.equal(latest.length,3);assert.equal(latest[0].id,'horse-tishter');
+  assert.ok(!latest.some(p=>p.id===products[0].id));
+  const invalid=clone(seed);invalid.products[0].createdAt='invalid';assert.throws(()=>H.validate(invalid));
+});
 test('products use the three approved collections and reject unknown collection names',()=>{
   const H=contract();assert.equal(Object.keys(H.collections).length,3);assert.ok(seed.products.every(p=>Object.hasOwn(H.collections,p.collection)));
   for(const value of ['hooya-world','constructor','unknown','',null,{},['persian-garden']]){const c=clone(seed);c.products[0].collection=value;assert.throws(()=>H.validate(c));}

@@ -30,7 +30,8 @@
       ],
       "status": "published",
       "updatedAt": "2026-11-19T17:17:27.817Z",
-      "collection": "mythical-creatures"
+      "collection": "mythical-creatures",
+      "createdAt": "2026-11-19T17:17:27.817Z"
     },
     {
       "id": "horse-cream",
@@ -60,7 +61,8 @@
       ],
       "status": "published",
       "updatedAt": "2026-11-19T17:17:27.817Z",
-      "collection": "mythical-creatures"
+      "collection": "mythical-creatures",
+      "createdAt": "2026-11-19T17:17:27.817Z"
     },
     {
       "id": "nightingale",
@@ -91,7 +93,8 @@
       ],
       "status": "published",
       "updatedAt": "2026-11-19T17:17:27.817Z",
-      "collection": "persian-garden"
+      "collection": "persian-garden",
+      "createdAt": "2026-11-19T17:17:27.817Z"
     },
     {
       "id": "swallow",
@@ -122,7 +125,8 @@
       ],
       "status": "published",
       "updatedAt": "2026-11-19T17:17:27.817Z",
-      "collection": "persian-garden"
+      "collection": "persian-garden",
+      "createdAt": "2026-11-19T17:17:27.817Z"
     },
     {
       "id": "iris",
@@ -153,7 +157,8 @@
       ],
       "status": "published",
       "updatedAt": "2026-11-18T16:59:29.997Z",
-      "collection": "persian-garden"
+      "collection": "persian-garden",
+      "createdAt": "2026-11-18T16:59:29.997Z"
     },
     {
       "id": "malakeh-kheir",
@@ -184,7 +189,8 @@
       ],
       "status": "published",
       "updatedAt": "2026-11-18T16:59:29.997Z",
-      "collection": "legendary-women"
+      "collection": "legendary-women",
+      "createdAt": "2026-11-18T16:59:29.997Z"
     },
     {
       "id": "horse-tishter",
@@ -222,7 +228,8 @@
       "dispatchDays": null,
       "status": "published",
       "updatedAt": "2026-11-19T17:17:27.817Z",
-      "collection": "mythical-creatures"
+      "collection": "mythical-creatures",
+      "createdAt": "2026-11-19T17:17:27.817Z"
     }
   ]
 }
