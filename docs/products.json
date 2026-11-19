@@ -1,11 +1,11 @@
 {
   "schema": 1,
-  "version": "2026-11-18T16:59:29.997Z",
+  "version": "2026-11-19T17:17:27.817Z",
   "products": [
     {
       "id": "horse-brown",
       "sku": "HYA-001",
-      "name": "وست اسب قهوه ای",
+      "name": "وست اسب فرنگ",
       "kind": "vest",
       "type": "وست · نقش اسب",
       "story": "horse",
@@ -20,7 +20,7 @@
       "colors": [
         "#97785b"
       ],
-      "description": "وست اسب قهوه‌ای با نقش دست‌دوز سر اسب. در گالری، تن‌خور، زاویه دیگر لباس و نمای نزدیک دوخت را ببینید.",
+      "description": "وست اسب فرنگ با نقش دست دوز سر اسب. در گالری، تن خور، زاویه دیگر لباس و نمای نزدیک دوخت را ببینید.",
       "price": null,
       "stock": null,
       "sizes": [
@@ -29,13 +29,13 @@
         "L"
       ],
       "status": "published",
-      "updatedAt": "2026-11-18T16:59:29.997Z",
+      "updatedAt": "2026-11-19T17:17:27.817Z",
       "collection": "mythical-creatures"
     },
     {
       "id": "horse-cream",
       "sku": "HYA-002",
-      "name": "وست اسب کرم",
+      "name": "وست اسب گوهر",
       "kind": "vest",
       "type": "وست · نقش اسب",
       "story": "horse",
@@ -50,7 +50,7 @@
       "colors": [
         "#80545b"
       ],
-      "description": "وست اسب با نقش دست‌دوز سر اسب. نمای تن‌خور و نمای نزدیک دوخت برای آشنایی با فرم و جزئیات لباس در گالری قرار دارند.",
+      "description": "وست اسب گوهر با نقش دست دوز سر اسب. نمای تن خور و نمای نزدیک دوخت برای آشنایی با فرم و جزئیات لباس در گالری قرار دارند.",
       "price": null,
       "stock": null,
       "sizes": [
@@ -59,15 +59,15 @@
         "L"
       ],
       "status": "published",
-      "updatedAt": "2026-11-18T16:59:29.997Z",
+      "updatedAt": "2026-11-19T17:17:27.817Z",
       "collection": "mythical-creatures"
     },
     {
       "id": "nightingale",
       "sku": "HYA-003",
-      "name": "وست بلبل",
+      "name": "وست پرستو",
       "kind": "vest",
-      "type": "وست · دوخت پرنده و گل",
+      "type": "وست · نقش پرستو",
       "story": "iran",
       "tag": "نقش پرنده",
       "photo": 0,
@@ -81,7 +81,7 @@
         "#b4a17b",
         "#286498"
       ],
-      "description": "وست بلبل با نقش پرنده آبی و گل‌ها. نمای اصلی، تن‌خور کامل و جزئیات دوخت در گالری این لباس قرار گرفته‌اند.",
+      "description": "وست پرستو با نقش پرنده آبی و گل ها. نمای اصلی، تن خور کامل و جزئیات دوخت در گالری این لباس قرار گرفته اند.",
       "price": null,
       "stock": null,
       "sizes": [
@@ -90,15 +90,15 @@
         "L"
       ],
       "status": "published",
-      "updatedAt": "2026-11-18T16:59:29.997Z",
+      "updatedAt": "2026-11-19T17:17:27.817Z",
       "collection": "persian-garden"
     },
     {
       "id": "swallow",
       "sku": "HYA-004",
-      "name": "وست پرستو",
+      "name": "وست بلبل",
       "kind": "vest",
-      "type": "وست · نقش پرستو",
+      "type": "وست · نقش بلبل",
       "story": "iran",
       "tag": "نقش پرنده",
       "photo": 0,
@@ -112,7 +112,7 @@
         "#c5b89d",
         "#392f29"
       ],
-      "description": "وست پرستو با نقش ظریف پرنده روی شاخه. گالری شامل نمای تن‌خور، نمای نزدیک لباس و برشی از جزئیات دوخت است.",
+      "description": "وست بلبل با نقش ظریف پرنده روی شاخه. گالری شامل نمای تن خور، نمای نزدیک لباس و برشی از جزئیات دوخت است.",
       "price": null,
       "stock": null,
       "sizes": [
@@ -121,7 +121,7 @@
         "L"
       ],
       "status": "published",
-      "updatedAt": "2026-11-18T16:59:29.997Z",
+      "updatedAt": "2026-11-19T17:17:27.817Z",
       "collection": "persian-garden"
     },
     {
@@ -185,6 +185,44 @@
       "status": "published",
       "updatedAt": "2026-11-18T16:59:29.997Z",
       "collection": "legendary-women"
+    },
+    {
+      "id": "horse-tishter",
+      "sku": "HYA-007",
+      "name": "وست اسب تیشتر",
+      "kind": "vest",
+      "type": "وست · نقش اسب",
+      "story": "horse",
+      "tag": "روایت اسب",
+      "photo": 0,
+      "image": "assets/products/horse-tishter/view-1.webp",
+      "images": [
+        "assets/products/horse-tishter/view-1.webp",
+        "assets/products/horse-tishter/view-2.webp",
+        "assets/products/horse-tishter/view-3.webp"
+      ],
+      "colors": [
+        "#1d2631"
+      ],
+      "description": "وست اسب تیشتر با نقش سر اسب روی زمینه تیره. در گالری، نمای لباس، تن خور کامل و جزئیات نقش را ببینید.",
+      "price": null,
+      "stock": null,
+      "sizeStock": {
+        "S": null,
+        "M": null,
+        "L": null
+      },
+      "sizes": [
+        "S",
+        "M",
+        "L"
+      ],
+      "madeToOrder": false,
+      "productionDays": null,
+      "dispatchDays": null,
+      "status": "published",
+      "updatedAt": "2026-11-19T17:17:27.817Z",
+      "collection": "mythical-creatures"
     }
   ]
 }
