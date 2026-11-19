@@ -1,5 +1,6 @@
 .cart-page{width:88%;max-width:1440px;min-height:64vh;padding:36px 0 88px;color:#161616}
 .cart-layout{display:grid;grid-template-columns:minmax(0,2.15fr) minmax(290px,1fr);align-items:start;gap:16px}
+.cart-layout:has(#cart-empty:not([hidden])){grid-template-columns:minmax(0,1fr)}
 .cart-panel{border:1px solid #dedede;min-width:0;padding:24px}
 .cart-heading{display:flex;align-items:center;gap:10px;margin-bottom:28px}
 .cart-heading h1{font-size:17px;font-weight:600}.cart-heading>span{background:#f4f4f4;padding:4px 8px;font-size:10px}
