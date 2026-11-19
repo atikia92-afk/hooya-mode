@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "version": "2026-11-19T17:17:27.817Z",
+  "version": "2026-11-19T19:38:40.823Z",
   "products": [
     {
       "id": "horse-brown",
@@ -22,16 +22,22 @@
       ],
       "description": "وست اسب فرنگ با نقش دست دوز سر اسب. در گالری، تن خور، زاویه دیگر لباس و نمای نزدیک دوخت را ببینید.",
       "price": null,
-      "stock": null,
+      "stock": 0,
       "sizes": [
         "S",
         "M",
         "L"
       ],
       "status": "published",
-      "updatedAt": "2026-11-19T17:17:27.817Z",
+      "updatedAt": "2026-11-19T19:38:40.823Z",
       "collection": "mythical-creatures",
-      "createdAt": "2026-11-19T17:17:27.817Z"
+      "createdAt": "2026-11-19T17:17:27.817Z",
+      "sizeStock": {
+        "S": 0,
+        "M": 0,
+        "L": 0
+      },
+      "madeToOrder": false
     },
     {
       "id": "horse-cream",
@@ -53,16 +59,22 @@
       ],
       "description": "وست اسب گوهر با نقش دست دوز سر اسب. نمای تن خور و نمای نزدیک دوخت برای آشنایی با فرم و جزئیات لباس در گالری قرار دارند.",
       "price": null,
-      "stock": null,
+      "stock": 0,
       "sizes": [
         "S",
         "M",
         "L"
       ],
       "status": "published",
-      "updatedAt": "2026-11-19T17:17:27.817Z",
+      "updatedAt": "2026-11-19T19:38:40.823Z",
       "collection": "mythical-creatures",
-      "createdAt": "2026-11-19T17:17:27.817Z"
+      "createdAt": "2026-11-19T17:17:27.817Z",
+      "sizeStock": {
+        "S": 0,
+        "M": 0,
+        "L": 0
+      },
+      "madeToOrder": false
     },
     {
       "id": "nightingale",
@@ -84,7 +96,7 @@
         "#286498"
       ],
       "description": "وست پرستو با نقش پرنده آبی و گل ها. نمای اصلی، تن خور کامل و جزئیات دوخت در گالری این لباس قرار گرفته اند.",
-      "price": null,
+      "price": 16800000,
       "stock": null,
       "sizes": [
         "S",
@@ -92,7 +104,7 @@
         "L"
       ],
       "status": "published",
-      "updatedAt": "2026-11-19T17:17:27.817Z",
+      "updatedAt": "2026-11-19T19:38:40.823Z",
       "collection": "persian-garden",
       "createdAt": "2026-11-19T17:17:27.817Z"
     },
@@ -116,7 +128,7 @@
         "#392f29"
       ],
       "description": "وست بلبل با نقش ظریف پرنده روی شاخه. گالری شامل نمای تن خور، نمای نزدیک لباس و برشی از جزئیات دوخت است.",
-      "price": null,
+      "price": 10800000,
       "stock": null,
       "sizes": [
         "S",
@@ -124,7 +136,7 @@
         "L"
       ],
       "status": "published",
-      "updatedAt": "2026-11-19T17:17:27.817Z",
+      "updatedAt": "2026-11-19T19:38:40.823Z",
       "collection": "persian-garden",
       "createdAt": "2026-11-19T17:17:27.817Z"
     },
@@ -148,7 +160,7 @@
         "#79518c"
       ],
       "description": "وست زنبق با نقش گل بنفش روی زمینه تیره. دو نمای تن‌خور و یک نمای نزدیک از دوخت گل برای دیدن جزئیات انتخاب شده‌اند.",
-      "price": null,
+      "price": 15800000,
       "stock": null,
       "sizes": [
         "S",
@@ -156,7 +168,7 @@
         "L"
       ],
       "status": "published",
-      "updatedAt": "2026-11-18T16:59:29.997Z",
+      "updatedAt": "2026-11-19T19:38:40.823Z",
       "collection": "persian-garden",
       "createdAt": "2026-11-18T16:59:29.997Z"
     },
@@ -180,7 +192,7 @@
         "#70816a"
       ],
       "description": "وست ملکه خیر با نقش دست‌دوز پیکره و ترکیب رنگ‌های سبز و گرم. در گالری، تن‌خور لباس و جزئیات نقش و بافت دیده می‌شوند.",
-      "price": null,
+      "price": 18800000,
       "stock": null,
       "sizes": [
         "S",
@@ -188,7 +200,7 @@
         "L"
       ],
       "status": "published",
-      "updatedAt": "2026-11-18T16:59:29.997Z",
+      "updatedAt": "2026-11-19T19:38:40.823Z",
       "collection": "legendary-women",
       "createdAt": "2026-11-18T16:59:29.997Z"
     },
@@ -211,7 +223,7 @@
         "#1d2631"
       ],
       "description": "وست اسب تیشتر با نقش سر اسب روی زمینه تیره. در گالری، نمای لباس، تن خور کامل و جزئیات نقش را ببینید.",
-      "price": null,
+      "price": 17800000,
       "stock": null,
       "sizeStock": {
         "S": null,
@@ -227,7 +239,7 @@
       "productionDays": null,
       "dispatchDays": null,
       "status": "published",
-      "updatedAt": "2026-11-19T17:17:27.817Z",
+      "updatedAt": "2026-11-19T19:38:40.823Z",
       "collection": "mythical-creatures",
       "createdAt": "2026-11-19T17:17:27.817Z"
     }
