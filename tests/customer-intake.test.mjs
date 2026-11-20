@@ -9,7 +9,7 @@ function fixture(){
  const sqlite=new DatabaseSync(':memory:');
  const db={exec:async sql=>{sqlite.exec(sql);return {count:1};},prepare(sql){let args=[];const statement=sqlite.prepare(sql);return {bind(...values){args=values;return this;},async first(){return statement.get(...args)||null;},async run(){return statement.run(...args);}};}};
  const product={id:'vest',name:'وست نمونه',sizes:['Free'],status:'published',stock:1,sizeStock:{Free:1},price:12000000,madeToOrder:false};
- const handler=createHandler({fetchCatalog:async()=>Response.json({schema:1,products:[product]})});
+ const handler=createHandler({fetchCatalog:async()=>Response.json({schema:1,version:'2026-11-20T00:00:00Z',products:[product]})});
  const env={DB:db};
  const send=(data=payload(),key=crypto.randomUUID(),extra={})=>handler.fetch(new Request('https://intake.example/v1/customer-details',{method:'POST',headers:{Origin:'https://hooyamode.ir','Content-Type':'application/json','Idempotency-Key':key,'CF-Connecting-IP':'192.0.2.1',...extra},body:JSON.stringify(data)}),env);
  return {sqlite,handler,env,send,product};
@@ -48,4 +48,9 @@ test('database write failure never returns confirmation and the same request can
  f.env.DB.prepare=function(sql){if(sql.startsWith('INSERT INTO customer_details'))throw Error('storage unavailable');return prepare.call(this,sql);};
  const failed=await f.send(payload(),key);assert.equal(failed.status,503);assert.equal((await failed.json()).reference,undefined);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM customer_details').get().n,0);
  f.env.DB.prepare=prepare;assert.equal((await f.send(payload(),key)).status,201);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM customer_details').get().n,1);f.sqlite.close();
+});
+test('public catalog works independently of customer storage and excludes drafts',async()=>{
+ const f=fixture(),request=()=>new Request('https://intake.example/v1/catalog',{headers:{Origin:'https://hooyamode.ir'}});
+ let response=await f.handler.fetch(request(),{});assert.equal(response.status,200);assert.equal((await response.json()).products[0].id,'vest');
+ f.product.status='draft';response=await f.handler.fetch(request(),{});assert.equal((await response.json()).products.length,0);assert.equal(f.sqlite.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE name='customer_details'").get().n,0);f.sqlite.close();
 });

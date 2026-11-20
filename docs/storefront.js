@@ -71,7 +71,7 @@
   $('#filter-status').textContent='';
   try{const snapshot=H.validate(JSON.parse($('#catalog-snapshot')?.textContent||'null'));products=snapshot.products.filter(p=>p.status==='published');}catch{}
   // HTML cards and a public catalog snapshot keep the collection visible on slow connections.
-  try{const response=await fetch('products.json',{cache:'no-cache',signal:AbortSignal.timeout(12000)});if(!response.ok)throw Error();const catalog=H.validate(await response.json());products=catalog.products.filter(p=>p.status==='published');}catch{loadError=true;}
+  try{const catalog=await H.loadCatalog();products=catalog.products.filter(p=>p.status==='published');}catch{loadError=true;}
   bag=C.read(products);
   const action=new URLSearchParams(window.location.search);
   if(!isCatalog&&(action.has('collection')||action.has('kind')||action.has('q')||action.get('search')==='1')){window.location.replace('products.html?'+action.toString()+'#collection');return;}

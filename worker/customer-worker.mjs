@@ -52,10 +52,19 @@ export function createHandler({fetchCatalog=fetch}={}){
     if(allowed.includes(origin))Object.assign(headers,{'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Methods':'POST, GET, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Idempotency-Key','Access-Control-Max-Age':'600'});
     const respond=(data,status=200)=>new Response(JSON.stringify(data),{status,headers});
     const path=new URL(request.url).pathname;
-    if(path!=='/health'&&path!=='/v1/customer-details')return respond({message:'پیدا نشد.'},404);
+    if(!['/health','/v1/catalog','/v1/customer-details'].includes(path))return respond({message:'پیدا نشد.'},404);
     if(request.method==='OPTIONS')return new Response(null,{status:allowed.includes(origin)?204:403,headers});
     if(path==='/v1/customer-details'&&request.method!=='POST')return respond({message:'این مسیر فقط برای ثبت اطلاعات است.'},405);
     if(path==='/health'&&request.method!=='GET')return respond({available:false},405);
+    if(path==='/v1/catalog'){
+      if(request.method!=='GET')return respond({message:'درخواست مجاز نیست.'},405);
+      try{
+        const response=await fetchCatalog(env.CATALOG_URL||'https://hooyamode.ir/products.json',{cache:'no-store',signal:AbortSignal.timeout(5000)});
+        if(!response.ok)throw Error('catalog');const catalog=await response.json();
+        if(catalog.schema!==1||!Array.isArray(catalog.products))throw Error('catalog');
+        return respond({schema:catalog.schema,version:catalog.version,products:catalog.products.filter(p=>p.status==='published')});
+      }catch{return respond({message:'دریافت مجموعه فعلا ممکن نیست.'},503);}
+    }
     if(path!=='/health'&&!allowed.includes(origin))return respond({message:'درخواست مجاز نیست.'},403);
     if(!env.DB)return respond({available:false,message:'ثبت اطلاعات فعلا در دسترس نیست.'},503);
     try{

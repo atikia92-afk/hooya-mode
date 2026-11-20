@@ -61,12 +61,19 @@
     if (new TextEncoder().encode(JSON.stringify(catalog)).length > 900000) throw Error('حجم کاتالوگ زیاد است. برای عکس‌ها از لینک تصویر استفاده کنید یا تعداد تصاویر را کاهش دهید.');
     return catalog;
   }
+  async function loadCatalog(){
+    const urls=['https://api.hooyamode.ir/v1/catalog',assetBase?new URL('products.json',assetBase).href:'products.json'];
+    for(const url of urls){
+      try{const response=await fetch(url,{cache:'no-cache',credentials:'omit',signal:AbortSignal.timeout(6000)});if(!response.ok)throw Error('catalog');return validate(await response.json());}catch{}
+    }
+    throw Error('دریافت مجموعه ممکن نشد.');
+  }
   const latest=(products,count=3)=>[...products].sort((a,b)=>(b.createdAt||b.updatedAt).localeCompare(a.createdAt||a.updatedAt)||b.sku.localeCompare(a.sku,'en',{numeric:true})).slice(0,count);
   function photo(p, extra = '') {
     const photoSource=!extra.includes('full-photo')&&p.thumbnail&&safeImage(p.thumbnail)?p.thumbnail:p.image;
     return photoSource && safeImage(photoSource) ? `<img class="product-photo custom-photo ${extra}" src="${escape(imageUrl(photoSource))}" alt="${escape(p.name)}" loading="lazy">` : `<div class="product-photo photo-${p.photo} ${extra}" role="img" aria-label="${escape(p.name)}"></div>`;
   }
-  window.Hooya = {sizeLabels,sizeLabel,detailFields,contentOf,latest,kinds, stories, collections, collectionOf, statuses, escape, normalize, number, safeImage, imageUrl, images, validate, photo};
+  window.Hooya = {sizeLabels,sizeLabel,detailFields,contentOf,latest,kinds, stories, collections, collectionOf, statuses, escape, normalize, number, safeImage, imageUrl, images, validate,loadCatalog, photo};
 })();
 
 ;
@@ -266,7 +273,7 @@
   $('#filter-status').textContent='';
   try{const snapshot=H.validate(JSON.parse($('#catalog-snapshot')?.textContent||'null'));products=snapshot.products.filter(p=>p.status==='published');}catch{}
   // HTML cards and a public catalog snapshot keep the collection visible on slow connections.
-  try{const response=await fetch('products.json',{cache:'no-cache',signal:AbortSignal.timeout(12000)});if(!response.ok)throw Error();const catalog=H.validate(await response.json());products=catalog.products.filter(p=>p.status==='published');}catch{loadError=true;}
+  try{const catalog=await H.loadCatalog();products=catalog.products.filter(p=>p.status==='published');}catch{loadError=true;}
   bag=C.read(products);
   const action=new URLSearchParams(window.location.search);
   if(!isCatalog&&(action.has('collection')||action.has('kind')||action.has('q')||action.get('search')==='1')){window.location.replace('products.html?'+action.toString()+'#collection');return;}

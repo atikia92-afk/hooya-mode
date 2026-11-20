@@ -61,12 +61,19 @@
     if (new TextEncoder().encode(JSON.stringify(catalog)).length > 900000) throw Error('حجم کاتالوگ زیاد است. برای عکس‌ها از لینک تصویر استفاده کنید یا تعداد تصاویر را کاهش دهید.');
     return catalog;
   }
+  async function loadCatalog(){
+    const urls=['https://api.hooyamode.ir/v1/catalog',assetBase?new URL('products.json',assetBase).href:'products.json'];
+    for(const url of urls){
+      try{const response=await fetch(url,{cache:'no-cache',credentials:'omit',signal:AbortSignal.timeout(6000)});if(!response.ok)throw Error('catalog');return validate(await response.json());}catch{}
+    }
+    throw Error('دریافت مجموعه ممکن نشد.');
+  }
   const latest=(products,count=3)=>[...products].sort((a,b)=>(b.createdAt||b.updatedAt).localeCompare(a.createdAt||a.updatedAt)||b.sku.localeCompare(a.sku,'en',{numeric:true})).slice(0,count);
   function photo(p, extra = '') {
     const photoSource=!extra.includes('full-photo')&&p.thumbnail&&safeImage(p.thumbnail)?p.thumbnail:p.image;
     return photoSource && safeImage(photoSource) ? `<img class="product-photo custom-photo ${extra}" src="${escape(imageUrl(photoSource))}" alt="${escape(p.name)}" loading="lazy">` : `<div class="product-photo photo-${p.photo} ${extra}" role="img" aria-label="${escape(p.name)}"></div>`;
   }
-  window.Hooya = {sizeLabels,sizeLabel,detailFields,contentOf,latest,kinds, stories, collections, collectionOf, statuses, escape, normalize, number, safeImage, imageUrl, images, validate, photo};
+  window.Hooya = {sizeLabels,sizeLabel,detailFields,contentOf,latest,kinds, stories, collections, collectionOf, statuses, escape, normalize, number, safeImage, imageUrl, images, validate,loadCatalog, photo};
 })();
 
 ;
@@ -224,7 +231,7 @@ window.HooyaCheckoutConfig={endpoint:'https://api.hooyamode.ir'};
     finally{submitting=false;button.textContent='ثبت اطلاعات';button.disabled=!available;form.removeAttribute('aria-busy');}
   };
   try{
-    const response=await fetch('products.json',{cache:'no-cache',signal:AbortSignal.timeout(12000)});if(!response.ok)throw Error();products=H.validate(await response.json()).products.filter(p=>p.status==='published');lines=C.read(products);render();$('#billing-status').textContent='';
+    products=(await H.loadCatalog()).products.filter(p=>p.status==='published');lines=C.read(products);render();$('#billing-status').textContent='';
     if(!endpoint)throw Error('Service not connected');
     const health=await fetch(endpoint+'/health',{cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(10000)});const data=await health.json();if(!health.ok||data.available!==true)throw Error('Service unavailable');available=true;render();
   }catch{
