@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import {createHash} from 'node:crypto';
+import path from 'node:path';
 const docs=new URL('./docs/',import.meta.url);
 const bundles=[
  {file:'storefront-bundle.js',sources:['catalog.js','product-motion.js','product-content.js','cart.js','storefront.js','hero-slider.js'],pages:['index.html','products.html']},
@@ -18,4 +19,22 @@ for(const bundle of bundles){
   await fs.writeFile(file,html);
  }
 }
-console.log('Storefront, cart and customer-details dependency bundles rebuilt.');
+// These small styles are part of the first HTML response, so a failed CSS request
+// cannot leave the storefront or customer form unstyled on an unstable connection.
+async function inlineStyles(directory){
+ for(const entry of await fs.readdir(directory,{withFileTypes:true})){
+  if(entry.isDirectory()&&entry.name==='admin'){await inlineStyles(new URL('admin/',directory));continue;}
+  if(!entry.isFile()||!entry.name.endsWith('.html'))continue;
+  const file=new URL(entry.name,directory);let html=await fs.readFile(file,'utf8');
+  const sources=[...html.matchAll(/<link rel="stylesheet" href="([^"]+)"[^>]*>|<style data-hooya-source="([^"]+)">[\s\S]*?<\/style>/g)];
+  for(const match of sources){
+   const source=(match[1]||match[2]).split('?')[0],base=path.posix.dirname(source);
+   let css=await fs.readFile(new URL(source,directory),'utf8');
+   css=css.replace(/url\((['"]?)([^)'"\s]+)\1\)/g,(all,quote,url)=>/^(?:[a-z]+:|\/|#)/i.test(url)?all:'url('+quote+path.posix.join(base,url)+quote+')');
+   html=html.replace(match[0],()=>'<style data-hooya-source="'+source+'">'+css+'</style>');
+  }
+  await fs.writeFile(file,html);
+ }
+}
+await inlineStyles(docs);
+console.log('Rebuilt dependency bundles and embedded first-render styles.');
