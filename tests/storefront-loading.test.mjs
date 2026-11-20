@@ -31,3 +31,24 @@ test('the embedded collection and product dialog work while the catalog request 
   await pending;
   assert.match(element('#product-grid').innerHTML,/data-product="horse-tishter"/);
 });
+
+for(const page of ['cart-page.js','checkout.js'])test(page+' displays saved selections before any network request completes',async()=>{
+ const seed=JSON.parse(await readFile(new URL('../docs/products.json',import.meta.url),'utf8'));
+ const nodes=new Map();
+ const element=key=>{
+  if(!nodes.has(key))nodes.set(key,{dataset:{},value:'',textContent:'',innerHTML:'',hidden:true,
+   setAttribute(){},append(){},addEventListener(){},classList:{add(){},remove(){},toggle(){}}});
+  return nodes.get(key);
+ };
+ element('#catalog-snapshot').textContent=JSON.stringify(seed);
+ const context={window:{addEventListener(){},HooyaCheckoutConfig:{endpoints:['/api/customer']}},
+  document:{querySelector:element,querySelectorAll:()=>[],createElement:()=>({}),addEventListener(){}},
+  localStorage:{getItem:()=>JSON.stringify([{id:'horse-tishter',size:'Free',mode:'pending',qty:1}]),setItem(){}},
+  TextEncoder,Intl,URL,URLSearchParams,AbortSignal,setTimeout:()=>0,clearTimeout(){},fetch:()=>new Promise(()=>{})};
+ for(const name of ['catalog.js','cart.js',...(page==='checkout.js'?['customer-data.js']:[])])vm.runInNewContext(await readFile(new URL('../docs/'+name,import.meta.url),'utf8'),context);
+ context.window.Hooya.loadCatalog=()=>new Promise(()=>{});
+ vm.runInNewContext(await readFile(new URL('../docs/'+page,import.meta.url),'utf8'),context);
+ assert.match(element(page==='checkout.js'?'#bill-products':'#cart-lines').innerHTML,/وست اسب تیشتر/);
+ assert.equal(element(page==='checkout.js'?'#billing-layout':'.cart-summary').hidden,false);
+ if(page==='checkout.js')assert.equal(element('#save-customer').disabled,true,'unverified storage must not accept submission');
+});

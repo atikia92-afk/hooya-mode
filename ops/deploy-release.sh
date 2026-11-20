@@ -16,7 +16,7 @@ release="$site/releases/$checksum"
 if [[ ! -d $release ]]; then
   mkdir "$release"
   [[ -z $expected_base ]] || cp -a "$previous/." "$release/"
-  tar -xzf "$archive" -C "$release" --unlink-first --no-same-owner --no-same-permissions
+  tar -xzf "$archive" -C "$release" --overwrite --no-same-owner --no-same-permissions
   if [[ -n $expected_base ]]; then
     python3 - "$release" <<'PY'
 import json,sys
