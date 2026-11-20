@@ -25,14 +25,14 @@
   function resetFilters(){chooseCollection('all');}
   function gallery(p){
     const photos=H.images(p);
-    if(!photos.length)return H.photo(p);
-    return `<div class="product-gallery"><div class="gallery-stage"><div class="gallery-image-slot" id="gallery-image-slot">${H.photo(p)}</div>${photos.length>1?`<button class="gallery-arrow gallery-prev" data-gallery-step="-1" aria-label="عکس قبلی">→</button><button class="gallery-arrow gallery-next" data-gallery-step="1" aria-label="عکس بعدی">←</button>`:''}</div><div class="gallery-toolbar"><span>گالری ${esc(p.name)}</span><span class="gallery-count" role="status">۱ / ${H.number(photos.length)}</span></div><div class="gallery-thumbnails" role="group" aria-label="تصاویر ${esc(p.name)}">${photos.map((src,i)=>`<button data-gallery-index="${i}" aria-label="نمای ${H.number(i+1)} از ${esc(p.name)}" aria-pressed="${i===0}" class="${i===0?'selected':''}"><img src="${esc(H.imageUrl(src))}" alt="نمای ${H.number(i+1)}" loading="lazy"></button>`).join('')}</div></div>`;
+    if(!photos.length)return H.photo(p,'full-photo');
+    return `<div class="product-gallery"><div class="gallery-stage"><div class="gallery-image-slot" id="gallery-image-slot">${H.photo(p,'full-photo')}</div>${photos.length>1?`<button class="gallery-arrow gallery-prev" data-gallery-step="-1" aria-label="عکس قبلی">→</button><button class="gallery-arrow gallery-next" data-gallery-step="1" aria-label="عکس بعدی">←</button>`:''}</div><div class="gallery-toolbar"><span>گالری ${esc(p.name)}</span><span class="gallery-count" role="status">۱ / ${H.number(photos.length)}</span></div><div class="gallery-thumbnails" role="group" aria-label="تصاویر ${esc(p.name)}">${photos.map((src,i)=>`<button data-gallery-index="${i}" aria-label="نمای ${H.number(i+1)} از ${esc(p.name)}" aria-pressed="${i===0}" class="${i===0?'selected':''}"><img src="${esc(H.imageUrl(src))}" alt="نمای ${H.number(i+1)}" loading="lazy"></button>`).join('')}</div></div>`;
   }
   function showGallery(index){
     if(!activeProduct)return;
     const photos=H.images(activeProduct);if(!photos.length)return;
     galleryIndex=(index+photos.length)%photos.length;
-    $('#gallery-image-slot').innerHTML=H.photo({...activeProduct,image:photos[galleryIndex]});
+    $('#gallery-image-slot').innerHTML=H.photo({...activeProduct,image:photos[galleryIndex]},'full-photo');
     $('.gallery-count').textContent=H.number(galleryIndex+1)+' / '+H.number(photos.length);
     document.querySelectorAll('[data-gallery-index]').forEach(b=>{const chosen=Number(b.dataset.galleryIndex)===galleryIndex;b.classList.toggle('selected',chosen);b.setAttribute('aria-pressed',String(chosen));});
   }
@@ -68,8 +68,10 @@
   $('#search-open').onclick=()=>$('#search-dialog').showModal();if($('#craft-more'))$('#craft-more').onclick=()=>$('#craft-dialog').showModal();$('#continue-shopping').onclick=()=>$('#added-dialog').close();$('#menu-open').onclick=()=>$('#menu-dialog').showModal();
   $('#search-form').onsubmit=e=>{e.preventDefault();query=$('#search-input').value.trim();if(!isCatalog){window.location.href='products.html?q='+encodeURIComponent(query)+'#collection';return;}currentFilter='all';currentCollection='';syncCollectionUrl();render();$('#search-dialog').close();$('#collection').scrollIntoView({behavior:'smooth'});};
   document.querySelectorAll('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close();}}));
-  $('#filter-status').textContent='در حال دریافت مجموعه…';
-  try{const response=await fetch('products.json',{cache:'no-store'});if(!response.ok)throw Error();const catalog=H.validate(await response.json());products=catalog.products.filter(p=>p.status==='published');}catch{loadError=true;}
+  $('#filter-status').textContent='';
+  try{const snapshot=H.validate(JSON.parse($('#catalog-snapshot')?.textContent||'null'));products=snapshot.products.filter(p=>p.status==='published');}catch{}
+  // HTML cards and a public catalog snapshot keep the collection visible on slow connections.
+  try{const response=await fetch('products.json',{cache:'no-cache',signal:AbortSignal.timeout(12000)});if(!response.ok)throw Error();const catalog=H.validate(await response.json());products=catalog.products.filter(p=>p.status==='published');}catch{loadError=true;}
   bag=C.read(products);
   const action=new URLSearchParams(window.location.search);
   if(!isCatalog&&(action.has('collection')||action.has('kind')||action.has('q')||action.get('search')==='1')){window.location.replace('products.html?'+action.toString()+'#collection');return;}
@@ -77,6 +79,7 @@
   currentFilter=Object.hasOwn(H.kinds,action.get('kind'))?action.get('kind'):'all';query=action.get('q')||'';$('#search-input').value=query;
   currentCollection=Object.hasOwn(H.collections,action.get('collection'))?action.get('collection'):'';
   render();if(!loadError)updateBag();
+  if(loadError&&products.length){$('#filter-status').textContent='به‌روزرسانی قیمت و موجودی انجام نشد. ';const retry=document.createElement('button');retry.className='filter-clear';retry.textContent='تلاش مجدد';retry.onclick=()=>window.location.reload();$('#filter-status').append(retry);}
   if(action.get('product'))openProduct(action.get('product'));
   window.addEventListener('popstate',()=>{const id=new URLSearchParams(window.location.search).get('collection');currentCollection=Object.hasOwn(H.collections,id)?id:'';const params=new URLSearchParams(window.location.search);currentFilter=Object.hasOwn(H.kinds,params.get('kind'))?params.get('kind'):'all';query=params.get('q')||'';$('#search-input').value=query;render();});
   if(action.get('search')==='1')$('#search-dialog').showModal();

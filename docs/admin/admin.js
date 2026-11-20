@@ -77,6 +77,7 @@
     return {
       id:editingId || 'product-'+crypto.randomUUID(), sku:String(f.get('sku')).trim(), name:String(f.get('name')).trim(),
       kind:f.get('kind'), type:String(f.get('type')).trim(), story:existing?.story||'iran', collection:String(f.get('collection')||''), tag:String(f.get('tag')).trim(),
+      ...(existing?.thumbnail&&editingImage===existing.image?{thumbnail:existing.thumbnail}:{}),
       photo:Number($('#sample-photo').value), image:editingImage, images:editingImage?[editingImage,...editingImages.slice(1)]:[], colors:String(f.get('colors')).split(/[,،]/).map(s=>s.trim()).filter(Boolean),
       description:String(f.get('description')).trim(), price:f.get('price')===''?null:Number(f.get('price')),
       stock:Object.values(sizeStock).every(n=>n!==null)?Object.values(sizeStock).reduce((a,b)=>a+b,0):null,

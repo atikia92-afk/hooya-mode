@@ -53,7 +53,8 @@
         "sizeNotes": {
           "Free": "مناسب تا سایز ۴۴"
         }
-      }
+      },
+      "thumbnail": "assets/products/horse-brown/card.webp"
     },
     {
       "id": "horse-cream",
@@ -106,7 +107,8 @@
         "sizeNotes": {
           "Free": "مناسب تا سایز ۴۴"
         }
-      }
+      },
+      "thumbnail": "assets/products/horse-cream/card.webp"
     },
     {
       "id": "nightingale",
@@ -162,7 +164,8 @@
       "sizeStock": {
         "1": null,
         "2": null
-      }
+      },
+      "thumbnail": "assets/products/nightingale/card.webp"
     },
     {
       "id": "swallow",
@@ -218,7 +221,8 @@
       "sizeStock": {
         "1": null,
         "2": null
-      }
+      },
+      "thumbnail": "assets/products/swallow/card.webp"
     },
     {
       "id": "iris",
@@ -271,7 +275,8 @@
       },
       "sizeStock": {
         "Free": null
-      }
+      },
+      "thumbnail": "assets/products/iris/card.webp"
     },
     {
       "id": "malakeh-kheir",
@@ -324,7 +329,8 @@
       },
       "sizeStock": {
         "Free": null
-      }
+      },
+      "thumbnail": "assets/products/malakeh-kheir/card.webp"
     },
     {
       "id": "horse-tishter",
@@ -379,7 +385,8 @@
         "sizeNotes": {
           "Free": "مناسب تا سایز ۴۴"
         }
-      }
+      },
+      "thumbnail": "assets/products/horse-tishter/card.webp"
     }
   ]
 }
