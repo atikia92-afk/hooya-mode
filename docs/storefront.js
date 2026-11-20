@@ -68,8 +68,10 @@
   $('#search-open').onclick=()=>$('#search-dialog').showModal();if($('#craft-more'))$('#craft-more').onclick=()=>$('#craft-dialog').showModal();$('#continue-shopping').onclick=()=>$('#added-dialog').close();$('#menu-open').onclick=()=>$('#menu-dialog').showModal();
   $('#search-form').onsubmit=e=>{e.preventDefault();query=$('#search-input').value.trim();if(!isCatalog){window.location.href='products.html?q='+encodeURIComponent(query)+'#collection';return;}currentFilter='all';currentCollection='';syncCollectionUrl();render();$('#search-dialog').close();$('#collection').scrollIntoView({behavior:'smooth'});};
   document.querySelectorAll('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close();}}));
-  $('#filter-status').textContent='در حال دریافت مجموعه…';
-  try{const response=await fetch('products.json',{cache:'no-store'});if(!response.ok)throw Error();const catalog=H.validate(await response.json());products=catalog.products.filter(p=>p.status==='published');}catch{loadError=true;}
+  $('#filter-status').textContent='';
+  try{const snapshot=H.validate(JSON.parse($('#catalog-snapshot')?.textContent||'null'));products=snapshot.products.filter(p=>p.status==='published');}catch{}
+  // HTML cards and a public catalog snapshot keep the collection visible on slow connections.
+  try{const response=await fetch('products.json',{cache:'no-cache',signal:AbortSignal.timeout(12000)});if(!response.ok)throw Error();const catalog=H.validate(await response.json());products=catalog.products.filter(p=>p.status==='published');}catch{loadError=true;}
   bag=C.read(products);
   const action=new URLSearchParams(window.location.search);
   if(!isCatalog&&(action.has('collection')||action.has('kind')||action.has('q')||action.get('search')==='1')){window.location.replace('products.html?'+action.toString()+'#collection');return;}
@@ -77,6 +79,7 @@
   currentFilter=Object.hasOwn(H.kinds,action.get('kind'))?action.get('kind'):'all';query=action.get('q')||'';$('#search-input').value=query;
   currentCollection=Object.hasOwn(H.collections,action.get('collection'))?action.get('collection'):'';
   render();if(!loadError)updateBag();
+  if(loadError&&products.length){$('#filter-status').textContent='به‌روزرسانی قیمت و موجودی انجام نشد. ';const retry=document.createElement('button');retry.className='filter-clear';retry.textContent='تلاش مجدد';retry.onclick=()=>window.location.reload();$('#filter-status').append(retry);}
   if(action.get('product'))openProduct(action.get('product'));
   window.addEventListener('popstate',()=>{const id=new URLSearchParams(window.location.search).get('collection');currentCollection=Object.hasOwn(H.collections,id)?id:'';const params=new URLSearchParams(window.location.search);currentFilter=Object.hasOwn(H.kinds,params.get('kind'))?params.get('kind'):'all';query=params.get('q')||'';$('#search-input').value=query;render();});
   if(action.get('search')==='1')$('#search-dialog').showModal();

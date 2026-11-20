@@ -31,3 +31,7 @@
 
 /* Compact desktop cards; mobile keeps its existing two-column layout. */
 @media(min-width:1024px){.latest-products .product-grid{width:90%;max-width:900px;margin-inline:auto}[data-catalog="full"] .product-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:32px 22px}.collection .product-meta{margin-top:16px;gap:0}.collection .product-name{margin-bottom:0}.collection .product-bottom{margin-top:12px}}
+
+/* Initial HTML cards remain usable while scripts and live catalog load. */
+.product-bottom>a{font-size:11px;border-bottom:1px solid #a18a68;padding-bottom:6px}.product-quick{display:grid;place-items:center}.product-view{display:block}
+@media(max-width:600px){.product-bottom>a{font-size:9px}}
