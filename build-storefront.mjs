@@ -15,7 +15,9 @@ for(const bundle of bundles){
  for(const name of bundle.pages){
   const file=new URL(name,docs);let html=await fs.readFile(file,'utf8');
   html=html.replace(new RegExp('<script (?:defer )?src="(?:'+names+')[^\\"]*"><\\/script>\\s*','g'),'');
-  html=html.replace('</body>','<script defer src="'+bundle.file+'?v='+version+'"></script>\n</body>');
+  html=html.replace(/<script data-hooya-bundle="[^"]+">[\s\S]*?<\/script>\s*/g,'');
+  const safeContents=contents.replace(/<\/script/gi,'<\\/script');
+  html=html.replace('</body>',()=>'<script data-hooya-bundle="'+bundle.file+'" data-version="'+version+'">'+safeContents+'</script>\n</body>');
   await fs.writeFile(file,html);
  }
 }

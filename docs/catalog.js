@@ -60,9 +60,9 @@
     return catalog;
   }
   async function loadCatalog(){
-    const urls=['https://api.hooyamode.ir/v1/catalog',assetBase?new URL('products.json',assetBase).href:'products.json'];
+    const urls=[assetBase?new URL('products.json',assetBase).href:'products.json','https://api.hooyamode.ir/v1/catalog'];
     for(const url of urls){
-      try{const response=await fetch(url,{cache:'no-cache',credentials:'omit',signal:AbortSignal.timeout(6000)});if(!response.ok)throw Error('catalog');return validate(await response.json());}catch{}
+      try{const response=await fetch(url,{cache:'no-cache',credentials:'omit',signal:AbortSignal.timeout(3000)});if(!response.ok)throw Error('catalog');return validate(await response.json());}catch{}
     }
     throw Error('دریافت مجموعه ممکن نشد.');
   }

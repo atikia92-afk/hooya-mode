@@ -8,9 +8,9 @@ const seed=JSON.parse(await readFile(new URL('../docs/products.json',import.meta
 const clone=x=>JSON.parse(JSON.stringify(x));
 function contract(scriptUrl){const context={window:{},TextEncoder,Intl,URL};if(scriptUrl)context.document={currentScript:{src:scriptUrl}};vm.runInNewContext(source,context);return context.window.Hooya;}
 test('published catalog validates prices and availability',()=>{const H=contract();assert.equal(H.validate(seed),seed);});
-test('catalog service failure falls back to the packaged data and validates each response',async()=>{
+test('same-origin catalog failure falls back to the catalog service and validates each response',async()=>{
  const urls=[],context={window:{},TextEncoder,Intl,URL,AbortSignal,fetch:async url=>{urls.push(url);return urls.length===1?{ok:true,json:async()=>({schema:99})}:{ok:true,json:async()=>clone(seed)};}};
- vm.runInNewContext(source,context);const catalog=await context.window.Hooya.loadCatalog();assert.equal(catalog.schema,1);assert.equal(catalog.products.length,seed.products.length);assert.deepEqual(urls,['https://api.hooyamode.ir/v1/catalog','products.json']);
+ vm.runInNewContext(source,context);const catalog=await context.window.Hooya.loadCatalog();assert.equal(catalog.schema,1);assert.equal(catalog.products.length,seed.products.length);assert.deepEqual(urls,['products.json','https://api.hooyamode.ir/v1/catalog']);
 });
 test('latest products keep their launch order when old product metadata is edited',()=>{
   const H=contract(),products=clone(seed.products);
