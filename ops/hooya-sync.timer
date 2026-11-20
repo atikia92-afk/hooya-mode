@@ -1,0 +1,10 @@
+[Unit]
+Description=Check Hooya source for development updates
+
+[Timer]
+OnBootSec=45s
+OnUnitInactiveSec=60s
+Unit=hooya-sync.service
+
+[Install]
+WantedBy=timers.target

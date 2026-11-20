@@ -1,7 +1,8 @@
 'use strict';
 (async()=>{
   const H=window.Hooya,C=window.HooyaCart,V=window.HooyaCustomer,$=s=>document.querySelector(s),esc=H.escape;
-  const endpoint=window.HooyaCheckoutConfig?.endpoint||'',form=$('#billing-form'),button=$('#save-customer');
+  const config=window.HooyaCheckoutConfig||{},endpoints=config.endpoints||(config.endpoint?[config.endpoint]:[]),form=$('#billing-form'),button=$('#save-customer');
+  let endpoint='';
   let products=[],lines=[],available=false,submitting=false,requestKey='',lastPayload='';
   const keys=['firstName','lastName','country','province','city','address','unit','postcode','phone'];
   const money=value=>value===null?'در انتظار تعیین قیمت':H.number(value)+' تومان';
@@ -53,10 +54,15 @@
     }catch{error('تایید ثبت اطلاعات دریافت نشد. اطلاعات فرم حفظ شده؛ دوباره تلاش کنید. تلاش مجدد، ثبت تکراری ایجاد نمی‌کند.');}
     finally{submitting=false;button.textContent='ثبت اطلاعات';button.disabled=!available;form.removeAttribute('aria-busy');}
   };
+  try{products=H.validate(JSON.parse($('#catalog-snapshot')?.textContent||'null')).products;lines=C.read(products);render();$('#billing-status').textContent='';}catch{}
+  const serviceReady=Promise.any(endpoints.map(async url=>{
+    const response=await fetch(url+'/health',{cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(5000)});
+    if(!response.ok||(await response.json()).available!==true)throw Error('Service unavailable');
+    return url;
+  })).then(url=>{endpoint=url;return true;}).catch(()=>false);
   try{
     products=(await H.loadCatalog()).products.filter(p=>p.status==='published');lines=C.read(products);render();$('#billing-status').textContent='';
-    if(!endpoint)throw Error('Service not connected');
-    const health=await fetch(endpoint+'/health',{cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(10000)});const data=await health.json();if(!health.ok||data.available!==true)throw Error('Service unavailable');available=true;render();
+    if(!await serviceReady)throw Error('Service unavailable');available=true;render();
   }catch{
     $('#billing-status').innerHTML='ثبت اطلاعات فعلا در دسترس نیست. لطفا کمی بعد تلاش کنید یا از <a href="https://wa.me/989010490260" target="_blank" rel="noopener noreferrer">پشتیبانی واتساپ</a> کمک بگیرید.';
     if(!products.length){$('#billing-empty').hidden=false;$('#billing-empty').querySelector('h2').textContent='دریافت سبد خرید ممکن نشد';$('#billing-empty').querySelector('p').textContent='انتخاب های قبلی شما حفظ شده‌اند. لطفا صفحه را دوباره بارگذاری کنید.';}

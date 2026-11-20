@@ -30,6 +30,7 @@
     if(!C.save(lines)){lines=previous;toast('ذخیره تغییرات سبد ممکن نشد. دوباره تلاش کنید.');return;}
     render();$('#cart-status').textContent=remove||!quantity?'لباس از سبد حذف شد.':'سبد خرید به‌روز شد.';
   });
+  try{products=H.validate(JSON.parse($('#catalog-snapshot')?.textContent||'null')).products;lines=C.read(products);render();$('#cart-status').textContent='';}catch{}
   try{
     products=(await H.loadCatalog()).products.filter(p=>p.status==='published');lines=C.read(products);render();
     $('#cart-status').textContent='';

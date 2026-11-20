@@ -1,0 +1,18 @@
+[Unit]
+Description=Publish the latest Hooya development revision
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=atie
+Group=atie
+ExecStart=/usr/local/lib/hooya/hooya-sync.sh
+TimeoutStartSec=120
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/hooya-source /var/www/hooyamode.ir /home/atie/hooya-releases
+MemoryMax=256M
+
