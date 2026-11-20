@@ -1,0 +1,12 @@
+{
+  "name": "hooya-customer-details",
+  "main": "customer-worker.mjs",
+  "compatibility_date": "2026-11-20",
+  "workers_dev": true,
+  "observability": { "enabled": false },
+  "vars": {
+    "ALLOWED_ORIGINS": "https://hooyamode.ir,https://www.hooyamode.ir",
+    "CATALOG_URL": "https://hooyamode.ir/products.json"
+  },
+  "d1_databases": [{ "binding": "DB", "database_name": "hooya-customers", "database_id": "REPLACE_WITH_DATABASE_ID" }]
+}
