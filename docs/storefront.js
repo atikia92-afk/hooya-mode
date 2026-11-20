@@ -25,14 +25,14 @@
   function resetFilters(){chooseCollection('all');}
   function gallery(p){
     const photos=H.images(p);
-    if(!photos.length)return H.photo(p);
-    return `<div class="product-gallery"><div class="gallery-stage"><div class="gallery-image-slot" id="gallery-image-slot">${H.photo(p)}</div>${photos.length>1?`<button class="gallery-arrow gallery-prev" data-gallery-step="-1" aria-label="عکس قبلی">→</button><button class="gallery-arrow gallery-next" data-gallery-step="1" aria-label="عکس بعدی">←</button>`:''}</div><div class="gallery-toolbar"><span>گالری ${esc(p.name)}</span><span class="gallery-count" role="status">۱ / ${H.number(photos.length)}</span></div><div class="gallery-thumbnails" role="group" aria-label="تصاویر ${esc(p.name)}">${photos.map((src,i)=>`<button data-gallery-index="${i}" aria-label="نمای ${H.number(i+1)} از ${esc(p.name)}" aria-pressed="${i===0}" class="${i===0?'selected':''}"><img src="${esc(H.imageUrl(src))}" alt="نمای ${H.number(i+1)}" loading="lazy"></button>`).join('')}</div></div>`;
+    if(!photos.length)return H.photo(p,'full-photo');
+    return `<div class="product-gallery"><div class="gallery-stage"><div class="gallery-image-slot" id="gallery-image-slot">${H.photo(p,'full-photo')}</div>${photos.length>1?`<button class="gallery-arrow gallery-prev" data-gallery-step="-1" aria-label="عکس قبلی">→</button><button class="gallery-arrow gallery-next" data-gallery-step="1" aria-label="عکس بعدی">←</button>`:''}</div><div class="gallery-toolbar"><span>گالری ${esc(p.name)}</span><span class="gallery-count" role="status">۱ / ${H.number(photos.length)}</span></div><div class="gallery-thumbnails" role="group" aria-label="تصاویر ${esc(p.name)}">${photos.map((src,i)=>`<button data-gallery-index="${i}" aria-label="نمای ${H.number(i+1)} از ${esc(p.name)}" aria-pressed="${i===0}" class="${i===0?'selected':''}"><img src="${esc(H.imageUrl(src))}" alt="نمای ${H.number(i+1)}" loading="lazy"></button>`).join('')}</div></div>`;
   }
   function showGallery(index){
     if(!activeProduct)return;
     const photos=H.images(activeProduct);if(!photos.length)return;
     galleryIndex=(index+photos.length)%photos.length;
-    $('#gallery-image-slot').innerHTML=H.photo({...activeProduct,image:photos[galleryIndex]});
+    $('#gallery-image-slot').innerHTML=H.photo({...activeProduct,image:photos[galleryIndex]},'full-photo');
     $('.gallery-count').textContent=H.number(galleryIndex+1)+' / '+H.number(photos.length);
     document.querySelectorAll('[data-gallery-index]').forEach(b=>{const chosen=Number(b.dataset.galleryIndex)===galleryIndex;b.classList.toggle('selected',chosen);b.setAttribute('aria-pressed',String(chosen));});
   }
