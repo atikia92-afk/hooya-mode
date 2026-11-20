@@ -1,2 +1,2 @@
 /* Public service URL only. Never put an API key or customer record in this file. */
-window.HooyaCheckoutConfig={endpoint:''};
+window.HooyaCheckoutConfig={endpoint:'https://api.hooyamode.ir'};

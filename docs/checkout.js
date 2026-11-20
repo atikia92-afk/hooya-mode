@@ -54,7 +54,7 @@
     finally{submitting=false;button.textContent='ثبت اطلاعات';button.disabled=!available;form.removeAttribute('aria-busy');}
   };
   try{
-    const response=await fetch('products.json',{cache:'no-store'});if(!response.ok)throw Error();products=H.validate(await response.json()).products.filter(p=>p.status==='published');lines=C.read(products);render();$('#billing-status').textContent='';
+    const response=await fetch('products.json',{cache:'no-cache',signal:AbortSignal.timeout(12000)});if(!response.ok)throw Error();products=H.validate(await response.json()).products.filter(p=>p.status==='published');lines=C.read(products);render();$('#billing-status').textContent='';
     if(!endpoint)throw Error('Service not connected');
     const health=await fetch(endpoint+'/health',{cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(10000)});const data=await health.json();if(!health.ok||data.available!==true)throw Error('Service unavailable');available=true;render();
   }catch{

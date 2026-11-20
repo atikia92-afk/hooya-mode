@@ -15,7 +15,9 @@ CREATE INDEX IF NOT EXISTS customer_details_created ON customer_details(created_
 CREATE TABLE IF NOT EXISTS intake_rate (bucket TEXT PRIMARY KEY, count INTEGER NOT NULL, expires_at INTEGER NOT NULL);`;
 const initialized=new WeakMap();
 async function initialize(db){
-  if(!initialized.has(db))initialized.set(db,db.exec(schema).catch(error=>{initialized.delete(db);throw error;}));
+  if(!initialized.has(db))initialized.set(db,(async()=>{
+    for(const sql of schema.split(';').map(value=>value.trim()).filter(Boolean))await db.prepare(sql).run();
+  })().catch(error=>{initialized.delete(db);throw error;}));
   await initialized.get(db);
 }
 const digest=async value=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value)))].map(n=>n.toString(16).padStart(2,'0')).join('');

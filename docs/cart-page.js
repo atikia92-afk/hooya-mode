@@ -31,7 +31,7 @@
     render();$('#cart-status').textContent=remove||!quantity?'لباس از سبد حذف شد.':'سبد خرید به‌روز شد.';
   });
   try{
-    const response=await fetch('products.json',{cache:'no-store'});if(!response.ok)throw Error();
+    const response=await fetch('products.json',{cache:'no-cache',signal:AbortSignal.timeout(12000)});if(!response.ok)throw Error();
     products=H.validate(await response.json()).products.filter(p=>p.status==='published');lines=C.read(products);render();
     $('#cart-status').textContent='';
   }catch{$('#cart-status').textContent='دریافت سبد خرید ممکن نشد. لطفا صفحه را دوباره بارگذاری کنید.';}

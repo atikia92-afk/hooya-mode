@@ -43,3 +43,9 @@ test('limits repeated new submissions and fails honestly if storage is unavailab
  const f=fixture();for(let i=0;i<10;i++)assert.equal((await f.send()).status,201);assert.equal((await f.send()).status,429);
  const health=await f.handler.fetch(new Request('https://intake.example/health'),{});assert.equal(health.status,503);assert.equal((await health.json()).available,false);f.sqlite.close();
 });
+test('database write failure never returns confirmation and the same request can be retried',async()=>{
+ const f=fixture(),prepare=f.env.DB.prepare,key=crypto.randomUUID();
+ f.env.DB.prepare=function(sql){if(sql.startsWith('INSERT INTO customer_details'))throw Error('storage unavailable');return prepare.call(this,sql);};
+ const failed=await f.send(payload(),key);assert.equal(failed.status,503);assert.equal((await failed.json()).reference,undefined);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM customer_details').get().n,0);
+ f.env.DB.prepare=prepare;assert.equal((await f.send(payload(),key)).status,201);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM customer_details').get().n,1);f.sqlite.close();
+});
