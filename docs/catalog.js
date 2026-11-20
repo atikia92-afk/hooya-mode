@@ -5,6 +5,10 @@
   const collections = {'persian-garden':'باغ ایرانی','legendary-women':'زنان افسانه ای','mythical-creatures':'موجودات اساطیری'};
   const collectionOf = p => p.collection || '';
   const statuses = {published:'منتشرشده', draft:'پیش‌نویس', archived:'بایگانی'};
+  const sizeLabels = {XS:'XS',S:'S',M:'M',L:'L',XL:'XL',XXL:'XXL',Free:'فری سایز','1':'سایز ۱','2':'سایز ۲'};
+  const sizeLabel = size => sizeLabels[size] || size;
+  const detailFields = {fabric:'جنس پارچه',technique:'تکنیک دوخت',embroideryMaterials:'متریال گلدوزی',lining:'آستر',finishing:'جزئیات تکمیل',fit:'تن خور',customization:'امکان سفارش سازی',care:'راهنمای نگهداری'};
+  const contentOf = p => ({narrative:{text:'',quote:'',verse:'',...p.narrative},details:{...Object.fromEntries(Object.keys(detailFields).map(key=>[key,''])),embroideryHours:null,lengthCm:null,...p.details,sizeNotes:{...p.details?.sizeNotes}}});
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const normalize = value => String(value).replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed\u200c]/g,'').toLowerCase();
   const number = value => new Intl.NumberFormat('fa-IR').format(value);
@@ -27,7 +31,18 @@
       if (!safeImage(p.image) || ![0,1,2].includes(p.photo)) throw Error('تصویر محصول معتبر نیست.');
       if (p.images !== undefined && (!Array.isArray(p.images) || p.images.length > 12 || p.images.some(src => !src || !safeImage(src)) || (p.images.length && p.images[0] !== p.image))) throw Error('گالری تصاویر محصول معتبر نیست.');
       for (const key of ['price','stock']) if (p[key] !== null && (!Number.isSafeInteger(p[key]) || p[key] < 0 || p[key] > (key === 'stock' ? 1000000 : 1000000000000))) throw Error('قیمت یا موجودی معتبر نیست.');
-      if (!Array.isArray(p.sizes) || !p.sizes.length || p.sizes.some(s => !['XS','S','M','L','XL','XXL','Free'].includes(s))) throw Error('حداقل یک اندازه معتبر انتخاب کنید.');
+      if (!Array.isArray(p.sizes) || !p.sizes.length || new Set(p.sizes).size!==p.sizes.length || p.sizes.some(s => typeof s!=='string'||!Object.hasOwn(sizeLabels,s))) throw Error('حداقل یک اندازه معتبر انتخاب کنید.');
+      const object=value=>value&&typeof value==='object'&&!Array.isArray(value);
+      if(p.narrative!==undefined){
+        if(!object(p.narrative)||Object.keys(p.narrative).some(key=>!['text','quote','verse'].includes(key)))throw Error('ساختار قصه لباس معتبر نیست.');
+        for(const [key,value] of Object.entries(p.narrative))if(typeof value!=='string'||value.length>(key==='text'?8000:key==='verse'?2000:800))throw Error('متن قصه لباس معتبر نیست.');
+      }
+      if(p.details!==undefined){
+        if(!object(p.details)||Object.keys(p.details).some(key=>!Object.hasOwn(detailFields,key)&&!['embroideryHours','lengthCm','sizeNotes'].includes(key)))throw Error('ساختار جزئیات لباس معتبر نیست.');
+        for(const key of Object.keys(detailFields))if(p.details[key]!==undefined&&(typeof p.details[key]!=='string'||p.details[key].length>1500))throw Error('متن جزئیات لباس معتبر نیست.');
+        for(const [key,max] of [['embroideryHours',10000],['lengthCm',300]]){const value=p.details[key];if(value!==undefined&&value!==null&&(!Number.isFinite(value)||value<=0||value>max))throw Error('زمان هنر دست یا قد لباس معتبر نیست.');}
+        if(p.details.sizeNotes!==undefined&&(!object(p.details.sizeNotes)||Object.entries(p.details.sizeNotes).some(([size,note])=>!p.sizes.includes(size)||typeof note!=='string'||note.length>300)))throw Error('راهنمای سایز باید با اندازه های محصول هماهنگ باشد.');
+      }
       if (p.sizeStock !== undefined) {
         if (!p.sizeStock || Array.isArray(p.sizeStock) || typeof p.sizeStock !== 'object' || Object.keys(p.sizeStock).length !== p.sizes.length || p.sizes.some(s=>!Object.hasOwn(p.sizeStock,s)) || Object.keys(p.sizeStock).some(s=>!p.sizes.includes(s))) throw Error('موجودی باید برای هر سایز انتخاب شده مشخص شود.');
         const counts=Object.values(p.sizeStock);
@@ -48,5 +63,5 @@
   function photo(p, extra = '') {
     return p.image && safeImage(p.image) ? `<img class="product-photo custom-photo ${extra}" src="${escape(imageUrl(p.image))}" alt="${escape(p.name)}" loading="lazy">` : `<div class="product-photo photo-${p.photo} ${extra}" role="img" aria-label="${escape(p.name)}"></div>`;
   }
-  window.Hooya = {latest,kinds, stories, collections, collectionOf, statuses, escape, normalize, number, safeImage, imageUrl, images, validate, photo};
+  window.Hooya = {sizeLabels,sizeLabel,detailFields,contentOf,latest,kinds, stories, collections, collectionOf, statuses, escape, normalize, number, safeImage, imageUrl, images, validate, photo};
 })();

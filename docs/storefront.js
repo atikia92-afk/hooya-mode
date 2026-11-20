@@ -1,11 +1,11 @@
 'use strict';
 (async () => {
   const H=window.Hooya, esc=H.escape, $=s=>document.querySelector(s);
-  const C=window.HooyaCart,isCatalog=$('#main').dataset.catalog==='full';
+  const P=window.HooyaProductContent,C=window.HooyaCart,isCatalog=$('#main').dataset.catalog==='full';
   let products=[], bag=[], currentFilter='all',currentCollection='',query='',selectedSize='M',activeProduct=null,galleryIndex=0,toastTimer,loadError=false;
   const price=p=>p.price===null?'برای اطلاعات بیشتر با هویا در ارتباط باشید':H.number(p.price)+' تومان';
   function render(){
-    const matching=products.filter(p=>(currentFilter==='all'||p.kind===currentFilter)&&(!currentCollection||H.collectionOf(p)===currentCollection)&&(!query||H.normalize(p.name+' '+p.type+' '+p.tag+' '+p.description+' '+(H.collections[H.collectionOf(p)]||'')).includes(H.normalize(query))));
+    const matching=products.filter(p=>(currentFilter==='all'||p.kind===currentFilter)&&(!currentCollection||H.collectionOf(p)===currentCollection)&&(!query||H.normalize(p.name+' '+p.type+' '+p.tag+' '+p.description+' '+JSON.stringify(H.contentOf(p))+' '+(H.collections[H.collectionOf(p)]||'')).includes(H.normalize(query))));
     const list=isCatalog?matching:H.latest(products,3);
     $('#product-grid').innerHTML=list.map(p=>`<article class="product-card"><div class="product-image-wrap"><button class="product-view" data-product="${p.id}" aria-label="مشاهده ${esc(p.name)}">${H.photo(p)}</button><button class="product-quick" data-product="${p.id}" aria-label="انتخاب ${esc(p.name)}">+</button></div><div class="product-meta"><div><button class="product-name" data-product="${p.id}">${esc(p.name)}</button></div><span class="swatches" aria-label="رنگ‌های محصول">${p.colors.map(c=>`<i style="background:${c}"></i>`).join('')}</span></div><div class="product-bottom"><span class="catalog-price">${p.price!==null?esc(price(p)):''}${p.stock===0?' · ناموجود':''}</span><button data-product="${p.id}">داستان این لباس ←</button></div></article>`).join('');
     $('#empty-state').hidden=!!list.length;
@@ -39,8 +39,8 @@
   function openProduct(id){
     activeProduct=products.find(p=>p.id===id);if(!activeProduct)return;
     const p=activeProduct;galleryIndex=0;selectedSize=p.sizes.includes('M')?'M':p.sizes[0];
-    $('#product-dialog').innerHTML=`<form method="dialog"><button class="close" aria-label="بستن جزئیات لباس">×</button></form><div class="product-detail">${gallery(p)}<div class="product-detail-copy"><span class="eyebrow">${esc(H.collections[H.collectionOf(p)]||p.tag)}</span><h2>${esc(p.name)}</h2><p>${esc(p.type)}</p><p class="product-description">${esc(p.description)}</p><p class="detail-price">${esc(price(p))}</p><label>اندازه پیشنهادی</label><div class="sizes" role="group" aria-label="انتخاب اندازه" dir="ltr">${p.sizes.map(s=>`<button data-size="${s}" class="${s===selectedSize?'selected':''}" aria-pressed="${s===selectedSize}">${s}</button>`).join('')}</div><button class="button" id="add-bag" ${C.options(p,selectedSize).length?'':'disabled'}>${C.options(p,selectedSize).length?'افزودن به سبد خرید <span>+</span>':'این اندازه فعلا ناموجود است'}</button><span class="demo-label">اندازه‌ها نمایشی‌اند. برای تأیید اندازه، قیمت و ثبت سفارش با هویا در ارتباط باشید.</span></div></div>`;
-    $('#product-dialog').showModal();
+    $('#product-dialog').innerHTML=`<form method="dialog"><button class="close" aria-label="بستن جزئیات لباس">×</button></form><div class="product-detail">${gallery(p)}<div class="product-detail-copy"><span class="eyebrow">${esc(H.collections[H.collectionOf(p)]||p.tag)}</span><h2>${esc(p.name)}</h2><p class="detail-price">${esc(price(p))}</p>${P.craft(p)}<label>اندازه لباس</label>${P.sizeGuide(p,selectedSize)}<button class="button" id="add-bag" ${C.options(p,selectedSize).length?'':'disabled'}>${C.options(p,selectedSize).length?'افزودن به سبد خرید <span>+</span>':'این اندازه فعلا ناموجود است'}</button><span class="demo-label">ثبت سفارش و پرداخت در نسخه نمایشی فعال نیست.</span><div class="product-content">${P.narrative(p)}${P.specifications(p)}${P.notes(p)}</div></div></div>`;
+    $('#product-dialog').showModal();$('#product-dialog').scrollTop=0;
   }
   function updateBag(){
     bag=C.normalize(bag,products);const stored=C.save(bag),count=C.totals(bag,products).count;
@@ -54,14 +54,14 @@
     const galleryStep=e.target.closest('[data-gallery-step]');if(galleryStep)showGallery(galleryIndex+Number(galleryStep.dataset.galleryStep));
     const product=e.target.closest('[data-product]');if(product)openProduct(product.dataset.product);
     const filter=e.target.closest('[data-filter]');if(filter){currentFilter=filter.dataset.filter;query='';syncCollectionUrl();render();}
-    const size=e.target.closest('[data-size]');if(size&&activeProduct?.sizes.includes(size.dataset.size)){selectedSize=size.dataset.size;$('#add-bag').disabled=!C.options(activeProduct,selectedSize).length;$('#add-bag').innerHTML=C.options(activeProduct,selectedSize).length?'افزودن به سبد خرید <span>+</span>':'این اندازه فعلا ناموجود است';document.querySelectorAll('[data-size]').forEach(b=>{b.classList.toggle('selected',b===size);b.setAttribute('aria-pressed',String(b===size));});}
+    const size=e.target.closest('[data-size]');if(size&&activeProduct?.sizes.includes(size.dataset.size)){selectedSize=size.dataset.size;$('#selected-size-note').textContent=H.contentOf(activeProduct).details.sizeNotes[selectedSize]||'';$('#add-bag').disabled=!C.options(activeProduct,selectedSize).length;$('#add-bag').innerHTML=C.options(activeProduct,selectedSize).length?'افزودن به سبد خرید <span>+</span>':'این اندازه فعلا ناموجود است';document.querySelectorAll('[data-size]').forEach(b=>{b.classList.toggle('selected',b===size);b.setAttribute('aria-pressed',String(b===size));});}
     if(e.target.closest('#add-bag')&&activeProduct){
       const p=activeProduct,mode=C.options(p,selectedSize)[0]?.id;if(!mode)return;
       const existing=bag.find(x=>x.id===p.id&&x.size===selectedSize&&x.mode===mode);
       if(existing&&existing.qty>=C.limit(p,existing)){toast('تعداد این لباس در سبد به حداکثر رسیده است.');return;}
       bag.push({id:p.id,size:selectedSize,mode,qty:1});const saved=updateBag();
       if(!saved){toast('ذخیره سبد خرید ممکن نشد. تنظیمات مرورگر را بررسی کنید.');return;}
-      $('#product-dialog').close();$('#added-product').innerHTML=`${H.photo(p)}<div><h3>${esc(p.name)}</h3><p>سایز: <b dir="ltr">${esc(selectedSize)}</b></p></div>`;$('#added-dialog').showModal();
+      $('#product-dialog').close();$('#added-product').innerHTML=`${H.photo(p)}<div><h3>${esc(p.name)}</h3><p>اندازه: <b dir="ltr">${esc(H.sizeLabel(selectedSize))}</b></p></div>`;$('#added-dialog').showModal();
     }
     const category=e.target.closest('[data-category]');if(category){if(!isCatalog)return;e.preventDefault();currentFilter=category.dataset.category;currentCollection='';query='';syncCollectionUrl();render();}
   });

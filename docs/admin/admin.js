@@ -81,6 +81,8 @@
       description:String(f.get('description')).trim(), price:f.get('price')===''?null:Number(f.get('price')),
       stock:Object.values(sizeStock).every(n=>n!==null)?Object.values(sizeStock).reduce((a,b)=>a+b,0):null,
       sizeStock, madeToOrder:f.get('madeToOrder')==='on', productionDays:days('productionDays'), dispatchDays:days('dispatchDays'),
+      narrative:{text:String(f.get('narrativeText')||'').trim(),quote:String(f.get('narrativeQuote')||'').trim(),verse:String(f.get('narrativeVerse')||'').trim()},
+      details:{...Object.fromEntries(Object.keys(H.detailFields).map(key=>[key,String(f.get(key)||'').trim()])),embroideryHours:days('embroideryHours'),lengthCm:days('lengthCm'),sizeNotes:Object.fromEntries(sizes.map(size=>[size,String(f.get('fit-'+size)||'').trim()]))},
       sizes, status:f.get('status'), createdAt:existing?.createdAt||existing?.updatedAt||'', updatedAt:existing?.updatedAt || ''
     };
   }
@@ -97,10 +99,13 @@
     editingId=id||null; editingImage=p.image; editingImages=H.images(p).slice();
     $('#product-form').reset(); $('#editor-title').textContent=id?'ویرایش '+p.name:'محصول جدید';
     for (const field of ['name','sku','kind','type','collection','tag','description','price','stock','status']) $('#'+field).value=p[field]??'';
+    const content=H.contentOf(p);for(const key of Object.keys(H.detailFields))$('#'+key).value=content.details[key];
+    $('#embroideryHours').value=content.details.embroideryHours??'';$('#lengthCm').value=content.details.lengthCm??'';
+    for(const [field,key] of [['narrativeText','text'],['narrativeQuote','quote'],['narrativeVerse','verse']])$('#'+field).value=content.narrative[key];
     $('#colors').value=p.colors.join(', '); $('#sample-photo').value=p.photo; $('#image-url').value=p.image.startsWith('https://')?p.image:'';
     document.querySelectorAll('[name=size]').forEach(i=>i.checked=p.sizes.includes(i.value));
     $('#madeToOrder').checked=!!p.madeToOrder; $('#productionDays').value=p.productionDays??''; $('#dispatchDays').value=p.dispatchDays??'';
-    renderSizeStock(p.sizeStock||{});
+    renderSizeStock(p.sizeStock||{});renderSizeNotes(content.details.sizeNotes);
     $('#form-error').textContent=''; $('#image-file').value=''; updatePreview(); editorSnapshot=editorFingerprint(); $('#editor').showModal();
   }
   async function closeEditor() {
@@ -109,11 +114,15 @@
     $('#editor').close();
   }
   $('#product-form').addEventListener('input', updatePreview);
+  function renderSizeNotes(values){
+    const sizes=[...document.querySelectorAll('[name=size]:checked')].map(i=>i.value);
+    $('#size-notes').innerHTML=sizes.map(size=>`<div class="field"><label for="fit-${esc(size)}">راهنمای ${esc(H.sizeLabel(size))}</label><input id="fit-${esc(size)}" name="fit-${esc(size)}" maxlength="300" value="${esc(values[size]||'')}" placeholder="مثلا مناسب تا سایز ۴۴"></div>`).join('');
+  }
   function renderSizeStock(values) {
     const sizes=[...document.querySelectorAll('[name=size]:checked')].map(i=>i.value);
-    $('#size-stock').innerHTML=sizes.map(size=>`<label class="size-stock-row"><span dir="ltr">${esc(size)}</span><input name="stock-${esc(size)}" aria-label="موجودی آماده سایز ${esc(size)}" type="number" min="0" max="1000000" step="1" value="${values[size]??''}" placeholder="نامشخص"></label>`).join('');
+    $('#size-stock').innerHTML=sizes.map(size=>`<label class="size-stock-row"><span dir="ltr">${esc(H.sizeLabel(size))}</span><input name="stock-${esc(size)}" aria-label="موجودی آماده سایز ${esc(size)}" type="number" min="0" max="1000000" step="1" value="${values[size]??''}" placeholder="نامشخص"></label>`).join('');
   }
-  document.querySelectorAll('[name=size]').forEach(input=>input.addEventListener('change',()=>{const values=Object.fromEntries([...document.querySelectorAll('#size-stock input')].map(i=>[i.name.slice(6),i.value]));renderSizeStock(values);updatePreview();}));
+  document.querySelectorAll('[name=size]').forEach(input=>input.addEventListener('change',()=>{const values=Object.fromEntries([...document.querySelectorAll('#size-stock input')].map(i=>[i.name.slice(6),i.value]));const notes=Object.fromEntries([...document.querySelectorAll('#size-notes input')].map(i=>[i.name.slice(4),i.value]));renderSizeStock(values);renderSizeNotes(notes);updatePreview();}));
   $('#product-form').onsubmit=e=>{
     e.preventDefault(); if(uploading)return; $('#form-error').textContent='';
     try {
