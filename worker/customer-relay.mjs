@@ -20,7 +20,8 @@ export default {
     payload=new Uint8Array(size);let offset=0;for(const part of chunks){payload.set(part,offset);offset+=part.byteLength;}
    }
    const upstreamHeaders={};for(const name of ['Content-Type','Idempotency-Key','Origin'])if(request.headers.has(name))upstreamHeaders[name]=request.headers.get(name);
-   const upstream=await fetch('https://hooyamode.ir/api/customer'+path,{method:request.method,headers:upstreamHeaders,...(payload?{body:payload}:{}),redirect:'error',signal:AbortSignal.timeout(18000)});
+   const upstream=await fetch('https://hooyamode.ir/api/customer'+path,{method:request.method,headers:upstreamHeaders,...(payload?{body:payload}:{}),redirect:'manual',signal:AbortSignal.timeout(18000)});
+   if(upstream.status>=300&&upstream.status<400)return error('مسیر سرویس سفارش در دسترس نیست.',503);
    return new Response(upstream.body,{status:upstream.status,headers});
   }catch{return error('ثبت سفارش فعلا در دسترس نیست. کمی بعد دوباره تلاش کنید.',503);}
  }
