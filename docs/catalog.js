@@ -18,6 +18,11 @@
   const explicitBase=typeof document==='undefined'?'':document.currentScript?.dataset?.assetBase;
   const assetBase = scriptUrl ? new URL('.',scriptUrl).href : explicitBase ? new URL(explicitBase,document.baseURI).href : '';
   const imageUrl = value => localImage(value) && assetBase ? new URL(value,assetBase).href : value;
+  const imagePreviews=window.HooyaImagePreviews||{};
+  if(typeof document!=='undefined')document.querySelectorAll?.('img[data-full-src]').forEach(image=>{
+    const [source,query]=image.getAttribute('data-full-src').split('?'),data=image.getAttribute('src'),version=new URLSearchParams(query).get('v');
+    if(localImage(source)&&safeImage(data)&&/^[a-f0-9]{12}$/.test(version||''))imagePreviews[source]={data,version};
+  });
   const images = p => Array.isArray(p.images) && p.images.length ? p.images : p.image ? [p.image] : [];
   function validate(catalog) {
     if (!catalog || catalog.schema !== 1 || typeof catalog.version !== 'string' || !Number.isFinite(Date.parse(catalog.version)) || !Array.isArray(catalog.products) || catalog.products.length > 250) throw Error('ساختار فایل محصولات معتبر نیست (حداکثر ۲۵۰ محصول).');
@@ -70,7 +75,9 @@
   const latest=(products,count=3)=>[...products].sort((a,b)=>(b.createdAt||b.updatedAt).localeCompare(a.createdAt||a.updatedAt)||b.sku.localeCompare(a.sku,'en',{numeric:true})).slice(0,count);
   function photo(p, extra = '') {
     const photoSource=!extra.includes('full-photo')&&p.thumbnail&&safeImage(p.thumbnail)?p.thumbnail:p.image;
-    return photoSource && safeImage(photoSource) ? `<img class="product-photo custom-photo ${extra}" src="${escape(imageUrl(photoSource))}" alt="${escape(p.name)}" loading="lazy">` : `<div class="product-photo photo-${p.photo} ${extra}" role="img" aria-label="${escape(p.name)}"></div>`;
+    const preview=imagePreviews[photoSource],instant=preview&&safeImage(preview.data)&&/^[a-f0-9]{12}$/.test(preview.version||'');
+    const full=imageUrl(photoSource)+(instant?'?v='+preview.version:'');
+    return photoSource && safeImage(photoSource) ? `<img class="product-photo custom-photo ${extra}" src="${escape(instant?preview.data:full)}"${instant?' data-full-src="'+escape(full)+'"':''} alt="${escape(p.name)}" loading="lazy">` : `<div class="product-photo photo-${p.photo} ${extra}" role="img" aria-label="${escape(p.name)}"></div>`;
   }
   window.Hooya = {sizeLabels,sizeLabel,detailFields,contentOf,latest,kinds, stories, collections, collectionOf, statuses, escape, normalize, number, safeImage, imageUrl, images, validate,loadCatalog, photo};
 })();

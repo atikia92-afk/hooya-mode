@@ -4,7 +4,8 @@ import path from 'node:path';
 const docs=new URL('./docs/',import.meta.url);
 const adminDirectory=new URL('./server/admin-ui/',import.meta.url);
 // Shared footer markup is rendered into the HTML, with no extra network request.
-const socials=await fs.readFile(new URL('partials/social-links.html',docs),'utf8');
+const baleMark=(await fs.readFile(new URL('assets/icons/bale.svg',docs),'utf8')).replace('<svg ','<svg aria-hidden="true" ');
+const socials=(await fs.readFile(new URL('partials/social-links.html',docs),'utf8')).replace(/<img src="assets\/icons\/bale.svg"[^>]*>/,()=>baleMark);
 const footer=(await fs.readFile(new URL('partials/footer.html',docs),'utf8')).replace('{{SOCIAL_LINKS}}',()=>socials);
 const footerScript=(await fs.readFile(new URL('footer.js',docs),'utf8')).replaceAll('\r\n','\n');
 for(const name of ['index.html','products.html','cart.html','checkout.html','about.html','contact.html','account.html']){
@@ -79,6 +80,34 @@ async function inlineStyles(directory,overrides={}){
 }
 await inlineStyles(docs);
 await inlineStyles(adminDirectory,{'../fonts.css':new URL('fonts.css',docs)});
+// A small checked preview arrives with the HTML. Never reuse it after the source
+// photograph changes; the full URL also changes with its content fingerprint.
+const previews={};
+try{const saved=JSON.parse(await fs.readFile(new URL('image-previews.json',docs),'utf8'));for(const [name,value] of Object.entries(saved.images||{})){
+ if(!/^assets\/products\/[a-z0-9-]+\/[a-z0-9-]+\.webp$/.test(name)||!/^data:image\/webp;base64,[A-Za-z0-9+/=]+$/.test(value.data))continue;
+ try{const hash=createHash('sha256').update(await fs.readFile(new URL(name,docs))).digest('hex');if(hash===value.sha256)previews[name]={data:value.data,version:hash.slice(0,12)};}catch{}
+}}catch{}
+const mediaScript=(await fs.readFile(new URL('site-media.js',docs),'utf8')).replaceAll('\r\n','\n');
+for(const name of ['index.html','products.html','cart.html','checkout.html','about.html','contact.html','account.html']){
+ const file=new URL(name,docs);let html=await fs.readFile(file,'utf8');
+ html=html.replace(/<script data-hooya-(?:previews|media)>[\s\S]*?<\/script>\s*/g,'');
+ html=html.replace(/<script\b[\s\S]*?<\/script>|<img\b[^>]*>/g,tag=>{
+  if(tag.startsWith('<script'))return tag;
+  const full=tag.match(/\bdata-full-src="([^"]+)"/)?.[1]||tag.match(/\bsrc="(assets\/[^"]+)"/)?.[1];if(!full)return tag;
+  const source=full.split('?')[0],preview=previews[source];tag=tag.replace(/ data-full-src="[^"]*"/,'');
+  return tag.replace(/\bsrc="[^"]*"/,()=>preview?'src="'+preview.data+'" data-full-src="'+source+'?v='+preview.version+'"':'src="'+source+'"');
+ });
+ html=html.replace(/<div\b[^>]*class="slide-detail"[^>]*>/g,tag=>{
+  const full=tag.match(/data-full-background="([^"]+)"/)?.[1]||tag.match(/background-image:url\('([^']+)'\)/)?.[1];if(!full)return tag;
+  const source=full.split('?')[0],preview=previews[source];if(!preview)return tag;
+  tag=tag.replace(/ data-full-background="[^"]*"/,'');return tag.replace(/style="[^"]*"/,()=>`data-full-background="${source}?v=${preview.version}" style="background-image:url('${preview.data}')"`);
+ });
+ if(name==='index.html')html=html.replace(/<link rel="preload"[^>]*as="image"[^>]*>/g,'');
+ const script='<script data-hooya-media>'+mediaScript.replace(/<\/script/gi,'<\\/script')+'</script>\n';
+ // Previews must exist before the catalog renderer executes.
+ html=html.replace(/<script\b(?=[^>]*data-hooya-bundle=)/,()=>script+'<script');
+ await fs.writeFile(file,html);
+}
 // Keep order management behind the same server session as the catalog editor.
 {
  const file=new URL('orders.html',adminDirectory);let html=await fs.readFile(file,'utf8');
