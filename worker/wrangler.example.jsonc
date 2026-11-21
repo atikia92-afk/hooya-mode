@@ -1,6 +1,6 @@
 {
   "name": "hooya-customer-details",
-  "main": "customer-worker.mjs",
+  "main": "customer-relay.mjs",
   "compatibility_date": "2026-11-20",
   "workers_dev": true,
   "observability": { "enabled": false },
