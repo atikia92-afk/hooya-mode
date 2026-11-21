@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 const source=await readFile(new URL('../docs/catalog.js',import.meta.url),'utf8');
-const adminSource=await readFile(new URL('../docs/admin/admin.js',import.meta.url),'utf8');
+const adminSource=await readFile(new URL('../server/admin-ui/admin.js',import.meta.url),'utf8');
 const seed=JSON.parse(await readFile(new URL('../docs/products.json',import.meta.url),'utf8'));
 const clone=x=>JSON.parse(JSON.stringify(x));
 function contract(scriptUrl){const context={window:{},TextEncoder,Intl,URL};if(scriptUrl)context.document={currentScript:{src:scriptUrl}};vm.runInNewContext(source,context);return context.window.Hooya;}

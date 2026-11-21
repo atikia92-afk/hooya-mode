@@ -10,9 +10,13 @@ test('rebuilding pages is repeatable and emits exactly one working bundle and pu
  const temporary=await mkdtemp(path.join(tmpdir(),'hooya-build-'));
  try{
   await cp(new URL('../docs/',import.meta.url),path.join(temporary,'docs'),{recursive:true});
+  await cp(new URL('../server/admin-ui/',import.meta.url),path.join(temporary,'server','admin-ui'),{recursive:true});
   await cp(new URL('../build-storefront.mjs',import.meta.url),path.join(temporary,'build-storefront.mjs'));
   const build=()=>execFileSync(process.execPath,['build-storefront.mjs'],{cwd:temporary});
   build();
+  const publicAdmin=await readFile(path.join(temporary,'docs','admin','index.html'),'utf8');
+  assert.ok(publicAdmin.includes('https://hooyamode.ir/admin/'));
+  assert.ok(!publicAdmin.includes('product-form'));
   const pages=['index.html','products.html','cart.html','checkout.html','about.html','contact.html'];
   const previous=await Promise.all(pages.map(name=>readFile(path.join(temporary,'docs',name),'utf8')));
   build();
