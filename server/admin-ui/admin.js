@@ -219,13 +219,22 @@
     $('#today').textContent=new Intl.DateTimeFormat('fa-IR',{dateStyle:'long',timeZone:'Asia/Tehran'}).format(new Date());
     try {
       let saved;try{const raw=localStorage.getItem(STORAGE);if(raw){saved=JSON.parse(raw);H.validate(saved.catalog);H.validate(saved.baseline);}}catch{saved=null;}
-      let live;try{const response=await fetch('../products.json',{cache:'no-store'});if(!response.ok)throw Error();live=H.validate(await response.json());}catch{if(!saved)throw Error('دریافت محصولات ممکن نشد. اتصال اینترنت را بررسی و صفحه را دوباره بارگذاری کنید.');}
-      if(saved && JSON.stringify(saved.catalog.products)!==JSON.stringify(saved.baseline.products)){
-        catalog=saved.catalog;baseline=saved.baseline;
-        if(live&&JSON.stringify(live)!==JSON.stringify(baseline))toast('تغییرهای محلی بازیابی شدند. کاتالوگ سایت نیز تغییر کرده؛ پیش از انتشار نسخه‌ها را بررسی کنید.');
-      }else if(saved && (!live || new Date(saved.baseline.version)>new Date(live.version))){catalog=saved.catalog;baseline=saved.baseline;}
-      else{catalog=clone(live);baseline=clone(live);}
-      render();
+      let snapshot;try{snapshot=H.validate(JSON.parse($('#admin-catalog-snapshot')?.textContent||'null'));}catch{}
+      const restore=live=>{
+        if(saved && JSON.stringify(saved.catalog.products)!==JSON.stringify(saved.baseline.products)){
+          catalog=saved.catalog;baseline=saved.baseline;
+          if(live&&JSON.stringify(live)!==JSON.stringify(baseline))toast('تغییرهای محلی بازیابی شدند. کاتالوگ سایت نیز تغییر کرده؛ پیش از انتشار نسخه‌ها را بررسی کنید.');
+        }else if(saved && (!live || new Date(saved.baseline.version)>new Date(live.version))){catalog=saved.catalog;baseline=saved.baseline;}
+        else{catalog=clone(live);baseline=clone(live);}
+        render();
+      };
+      if(snapshot||saved)restore(snapshot);
+      try{
+        const response=await fetch('../products.json',{cache:'no-store',signal:AbortSignal.timeout(4000)});if(!response.ok)throw Error();const live=H.validate(await response.json());
+        if(!catalog)restore(live);
+        else if(changes().length){if(JSON.stringify(live)!==JSON.stringify(baseline))toast('کاتالوگ سایت تغییر کرده است. تغییرهای محلی شما حفظ شده‌اند.');}
+        else if(new Date(live.version)>=new Date(baseline.version)){catalog=clone(live);baseline=clone(live);render();}
+      }catch{if(!catalog)throw Error('دریافت محصولات ممکن نشد. اتصال اینترنت را بررسی و صفحه را دوباره بارگذاری کنید.');}
     }catch(error){$('#sync-title').textContent='دریافت کاتالوگ انجام نشد';$('#sync-copy').textContent=error.message;$('#products-region').innerHTML='<div class="error-state"><h3>ارتباط با کاتالوگ برقرار نشد</h3><p>صفحه را دوباره بارگذاری کنید. تغییرهای ذخیره‌شده شما در مرورگر محفوظ‌اند.</p><button class="button secondary" onclick="location.reload()">تلاش دوباره</button></div>';}
   }
   boot();

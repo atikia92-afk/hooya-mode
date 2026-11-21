@@ -15,7 +15,8 @@
   const localImage = value => typeof value === 'string' && /^assets\/products\/[a-z0-9-]+\/[a-z0-9-]+\.(jpg|jpeg|png|webp)$/i.test(value);
   const safeImage = value => typeof value === 'string' && (value === '' || localImage(value) || /^https:\/\/[^\s<>"']+$/i.test(value) || /^data:image\/(jpeg|png|webp);base64,[a-z0-9+/=]+$/i.test(value));
   const scriptUrl = typeof document === 'undefined' ? '' : document.currentScript?.src || '';
-  const assetBase = scriptUrl ? new URL('.',scriptUrl).href : '';
+  const explicitBase=typeof document==='undefined'?'':document.currentScript?.dataset?.assetBase;
+  const assetBase = scriptUrl ? new URL('.',scriptUrl).href : explicitBase ? new URL(explicitBase,document.baseURI).href : '';
   const imageUrl = value => localImage(value) && assetBase ? new URL(value,assetBase).href : value;
   const images = p => Array.isArray(p.images) && p.images.length ? p.images : p.image ? [p.image] : [];
   function validate(catalog) {

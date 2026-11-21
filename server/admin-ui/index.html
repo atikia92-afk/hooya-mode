@@ -60,5 +60,325 @@ dialog{border:1px solid var(--line);background:#fff;color:var(--ink);border-radi
 <dialog id="publish-dialog" class="publish-dialog" aria-labelledby="publish-title"><header class="dialog-heading"><div><span class="eyebrow">FROM ATELIER TO WINDOW</span><h2 id="publish-title">انتشار در ویترین هویا</h2></div><button class="close" data-close="publish-dialog" aria-label="بستن">×</button></header><div class="publish-body"><p>تغییرهای زیر به سایت ارسال می‌شوند. محصولات پیش‌نویس و بایگانی در ویترین نمایش داده نمی‌شوند.</p><div id="publish-summary"></div><form id="publish-form"><div class="field"><label for="github-token">کلید دسترسی GitHub</label><input id="github-token" type="password" required autocomplete="off" spellcheck="false" dir="ltr" placeholder="github_pat_…"><small class="help">فقط برای مخزن hooya-mode با مجوز Contents: Read and write. کلید در فایل یا حافظه مرورگر ذخیره نمی‌شود.</small></div><a class="help-link" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">ساخت کلید دسترسی محدود در GitHub ↖</a><p id="publish-error" class="error" role="alert"></p><button class="button primary full-width" id="publish-submit" type="submit"><svg><use href="#i-upload"/></svg>ارسال تغییرها به سایت</button></form><p class="help">نمایش نسخه جدید پس از ارسال ممکن است چند دقیقه طول بکشد. داده‌های کاتالوگ، شامل پیش‌نویس‌ها، در مخزن عمومی نگهداری می‌شوند.</p></div></dialog>
 <dialog id="confirm-dialog" class="confirm-dialog" aria-labelledby="confirm-title"><h2 id="confirm-title"></h2><p id="confirm-copy"></p><div><button class="button secondary" id="confirm-no">انصراف</button><button class="button primary" id="confirm-yes">ادامه</button></div></dialog>
 <div id="toast" class="toast" role="status"></div>
-<script src="../catalog.js?v=light-20261120"></script><script src="admin.js?v=light-20261120"></script>
+<script id="admin-catalog-snapshot" type="application/json">{"schema":1,"version":"2026-11-20T09:40:56.482Z","products":[{"id":"horse-brown","sku":"HYA-001","name":"وست اسب فرنگ","kind":"vest","type":"وست · نقش اسب","story":"horse","tag":"روایت اسب","photo":0,"image":"assets/products/horse-brown/view-1.webp","images":["assets/products/horse-brown/view-1.webp","assets/products/horse-brown/view-2.webp","assets/products/horse-brown/view-3.webp"],"colors":["#97785b"],"description":"","price":null,"stock":0,"sizes":["Free"],"status":"published","updatedAt":"2026-11-20T09:40:56.482Z","collection":"mythical-creatures","createdAt":"2026-11-19T17:17:27.817Z","sizeStock":{"Free":0},"madeToOrder":false,"narrative":{"text":"فرنگ، اسب ایرانی ترکمن قوی و مهربان است که رفتاری بسیار صبورانه با کودکان دارد.","quote":"","verse":""},"details":{"fabric":"فوتر","technique":"ابریشم دوزی","embroideryMaterials":"","lining":"آسترکشی شده","finishing":"مغزی دوزی شده","fit":"فری سایز","customization":"","care":"","embroideryHours":130,"lengthCm":75,"sizeNotes":{"Free":"مناسب تا سایز ۴۴"}},"thumbnail":"assets/products/horse-brown/card.webp"},{"id":"horse-cream","sku":"HYA-002","name":"وست اسب گوهر","kind":"vest","type":"وست · نقش اسب","story":"horse","tag":"روایت اسب","photo":0,"image":"assets/products/horse-cream/view-1.webp","images":["assets/products/horse-cream/view-1.webp","assets/products/horse-cream/view-2.webp","assets/products/horse-cream/view-3.webp"],"colors":["#80545b"],"description":"","price":null,"stock":0,"sizes":["Free"],"status":"published","updatedAt":"2026-11-20T09:40:56.482Z","collection":"mythical-creatures","createdAt":"2026-11-19T17:17:27.817Z","sizeStock":{"Free":0},"madeToOrder":false,"narrative":{"text":"این وست با الهام از اسب ایرانی ترکمن، آرام، متین و افتخارآفرین به نام گوهر دوخته شده است.","quote":"","verse":""},"details":{"fabric":"پشم اعلا","technique":"گلدوزی","embroideryMaterials":"","lining":"آسترکشی شده","finishing":"مغزی دوزی شده","fit":"فری سایز","customization":"","care":"","embroideryHours":130,"lengthCm":75,"sizeNotes":{"Free":"مناسب تا سایز ۴۴"}},"thumbnail":"assets/products/horse-cream/card.webp"},{"id":"nightingale","sku":"HYA-003","name":"وست پرستو","kind":"vest","type":"وست · نقش پرستو","story":"iran","tag":"نقش پرنده","photo":0,"image":"assets/products/nightingale/view-1.webp","images":["assets/products/nightingale/view-1.webp","assets/products/nightingale/view-2.webp","assets/products/nightingale/view-3.webp"],"colors":["#b4a17b","#286498"],"description":"","price":16800000,"stock":null,"sizes":["1","2"],"status":"published","updatedAt":"2026-11-20T09:40:56.482Z","collection":"persian-garden","createdAt":"2026-11-19T17:17:27.817Z","narrative":{"text":"","quote":"","verse":""},"details":{"fabric":"کرپ درجه یک","technique":"گلدوزی","embroideryMaterials":"","lining":"آسترکشی شده","finishing":"لایی کشی شده","fit":"","customization":"با دکمه یا بدون دکمه، بر اساس سفارش شما.\nقد و سایز دلخواه قابل اجراست.","care":"","embroideryHours":91,"lengthCm":45,"sizeNotes":{"1":"مناسب سایز ۳۸ تا ۴۰","2":"مناسب سایز ۴۲ تا ۴۴"}},"sizeStock":{"1":null,"2":null},"thumbnail":"assets/products/nightingale/card.webp"},{"id":"swallow","sku":"HYA-004","name":"وست بلبل","kind":"vest","type":"وست · نقش بلبل","story":"iran","tag":"نقش پرنده","photo":0,"image":"assets/products/swallow/view-1.webp","images":["assets/products/swallow/view-1.webp","assets/products/swallow/view-2.webp","assets/products/swallow/view-3.webp"],"colors":["#c5b89d","#392f29"],"description":"","price":10800000,"stock":null,"sizes":["1","2"],"status":"published","updatedAt":"2026-11-20T09:40:56.482Z","collection":"persian-garden","createdAt":"2026-11-19T17:17:27.817Z","narrative":{"text":"","quote":"","verse":"فکر بلبل همه آنست که گل شد یارش\nگل در اندیشه که چون عشوه کند در کارش"},"details":{"fabric":"لینن تنسل","technique":"گلدوزی دستی","embroideryMaterials":"بهترین متریال فرانسوی","lining":"تمام آسترکشی شده","finishing":"لایی کشی شده","fit":"","customization":"","care":"","embroideryHours":65,"lengthCm":45,"sizeNotes":{"1":"مناسب تا سایز ۴۰","2":"مناسب تا سایز ۴۴"}},"sizeStock":{"1":null,"2":null},"thumbnail":"assets/products/swallow/card.webp"},{"id":"iris","sku":"HYA-005","name":"وست زنبق","kind":"vest","type":"وست · نقش زنبق","story":"iran","tag":"نقش گل","photo":0,"image":"assets/products/iris/view-1.webp","images":["assets/products/iris/view-1.webp","assets/products/iris/view-2.webp","assets/products/iris/view-3.webp"],"colors":["#242322","#79518c"],"description":"","price":15800000,"stock":null,"sizes":["Free"],"status":"published","updatedAt":"2026-11-20T09:40:56.482Z","collection":"persian-garden","createdAt":"2026-11-18T16:59:29.997Z","narrative":{"text":"در ادبیات کهن ایرانی، در متون پهلوی، گل زنبق گل ویژه «امرداد» معرفی شده است. این گل جایگاهی والا دارد و نماد جاودانگی، بی‌مرگی، وقار و نجابت است.","quote":"","verse":""},"details":{"fabric":"کرپ","technique":"","embroideryMaterials":"بهترین متریال فرانسوی","lining":"آسترکشی شده","finishing":"مغزی دوزی شده","fit":"فری سایز","customization":"","care":"","embroideryHours":70,"lengthCm":65,"sizeNotes":{"Free":""}},"sizeStock":{"Free":null},"thumbnail":"assets/products/iris/card.webp"},{"id":"malakeh-kheir","sku":"HYA-006","name":"وست ملکه خیر","kind":"vest","type":"وست · نقش دست‌دوز","story":"iran","tag":"مجموعه هویا","photo":0,"image":"assets/products/malakeh-kheir/view-1.webp","images":["assets/products/malakeh-kheir/view-1.webp","assets/products/malakeh-kheir/view-2.webp","assets/products/malakeh-kheir/view-3.webp"],"colors":["#bdb3a2","#70816a"],"description":"","price":18800000,"stock":null,"sizes":["Free"],"status":"published","updatedAt":"2026-11-20T09:40:56.482Z","collection":"legendary-women","createdAt":"2026-11-18T16:59:29.997Z","narrative":{"text":"","quote":"","verse":""},"details":{"fabric":"پشم اعلا","technique":"گلدوزی","embroideryMaterials":"","lining":"تمام آسترکشی شده","finishing":"مغزی دوزی شده","fit":"فری سایز","customization":"با قد دلخواه قابل اجراست.","care":"","embroideryHours":89,"lengthCm":80,"sizeNotes":{"Free":"مناسب تا سایز ۴۴"}},"sizeStock":{"Free":null},"thumbnail":"assets/products/malakeh-kheir/card.webp"},{"id":"horse-tishter","sku":"HYA-007","name":"وست اسب تیشتر","kind":"vest","type":"وست · نقش اسب","story":"horse","tag":"روایت اسب","photo":0,"image":"assets/products/horse-tishter/view-1.webp","images":["assets/products/horse-tishter/view-1.webp","assets/products/horse-tishter/view-2.webp","assets/products/horse-tishter/view-3.webp"],"colors":["#1d2631"],"description":"","price":17800000,"stock":null,"sizeStock":{"Free":null},"sizes":["Free"],"madeToOrder":false,"productionDays":null,"dispatchDays":null,"status":"published","updatedAt":"2026-11-20T09:40:56.482Z","collection":"mythical-creatures","createdAt":"2026-11-19T17:17:27.817Z","narrative":{"text":"در اسطوره‌های ایران باستان، تیشتر ایزد باران و ستاره شباهنگ است که در هیئت اسبی سپید و درخشان ظاهر می‌شود. او در نبرد با اپوش، دیو خشکسالی، پیروز می‌شود و آب‌ها را آزاد می‌کند تا باران و زندگی دوباره به زمین بازگردد.","quote":"تیشتر؛ اسب سپیدی که نویدبخش باران و زندگی است.","verse":""},"details":{"fabric":"جین گرم بالا","technique":"شماره دوزی","embroideryMaterials":"","lining":"پارچه کتان","finishing":"","fit":"فری سایز","customization":"","care":"","embroideryHours":89,"lengthCm":65,"sizeNotes":{"Free":"مناسب تا سایز ۴۴"}},"thumbnail":"assets/products/horse-tishter/card.webp"}]}</script>
+<script data-hooya-admin-bundle="5c39f2af33ff" data-asset-base="/">/* Shared product contract for the storefront and the editor. No credentials live here. */
+(() => {
+  const kinds = {vest:'وست', jacket:'کت', blouse:'شومیز'};
+  const stories = {myth:'شاهنامه و اساطیر', horse:'اسب و سوارکاری', folk:'روایت‌های اقوام', iran:'نمادهای ایران'};
+  const collections = {'persian-garden':'باغ ایرانی','legendary-women':'زنان افسانه ای','mythical-creatures':'موجودات اساطیری'};
+  const collectionOf = p => p.collection || '';
+  const statuses = {published:'منتشرشده', draft:'پیش‌نویس', archived:'بایگانی'};
+  const sizeLabels = {XS:'XS',S:'S',M:'M',L:'L',XL:'XL',XXL:'XXL',Free:'فری سایز','1':'سایز ۱','2':'سایز ۲'};
+  const sizeLabel = size => sizeLabels[size] || size;
+  const detailFields = {fabric:'جنس پارچه',technique:'تکنیک دوخت',embroideryMaterials:'متریال گلدوزی',lining:'آستر',finishing:'جزئیات تکمیل',fit:'تن خور',customization:'امکان سفارش سازی',care:'راهنمای نگهداری'};
+  const contentOf = p => ({narrative:{text:'',quote:'',verse:'',...p.narrative},details:{...Object.fromEntries(Object.keys(detailFields).map(key=>[key,''])),embroideryHours:null,lengthCm:null,...p.details,sizeNotes:{...p.details?.sizeNotes}}});
+  const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const normalize = value => String(value).replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed\u200c]/g,'').toLowerCase();
+  const number = value => new Intl.NumberFormat('fa-IR').format(value);
+  const localImage = value => typeof value === 'string' && /^assets\/products\/[a-z0-9-]+\/[a-z0-9-]+\.(jpg|jpeg|png|webp)$/i.test(value);
+  const safeImage = value => typeof value === 'string' && (value === '' || localImage(value) || /^https:\/\/[^\s<>"']+$/i.test(value) || /^data:image\/(jpeg|png|webp);base64,[a-z0-9+/=]+$/i.test(value));
+  const scriptUrl = typeof document === 'undefined' ? '' : document.currentScript?.src || '';
+  const explicitBase=typeof document==='undefined'?'':document.currentScript?.dataset?.assetBase;
+  const assetBase = scriptUrl ? new URL('.',scriptUrl).href : explicitBase ? new URL(explicitBase,document.baseURI).href : '';
+  const imageUrl = value => localImage(value) && assetBase ? new URL(value,assetBase).href : value;
+  const images = p => Array.isArray(p.images) && p.images.length ? p.images : p.image ? [p.image] : [];
+  function validate(catalog) {
+    if (!catalog || catalog.schema !== 1 || typeof catalog.version !== 'string' || !Number.isFinite(Date.parse(catalog.version)) || !Array.isArray(catalog.products) || catalog.products.length > 250) throw Error('ساختار فایل محصولات معتبر نیست (حداکثر ۲۵۰ محصول).');
+    const ids = new Set();
+    for (const p of catalog.products) {
+      if (!p || typeof p.id !== 'string' || !/^[a-z0-9-]{1,80}$/.test(p.id) || ids.has(p.id)) throw Error('شناسه محصول نامعتبر یا تکراری است.');
+      ids.add(p.id);
+      for (const key of ['name','type','tag','description','sku']) if (typeof p[key] !== 'string' || p[key].length > (key === 'description' ? 3000 : 160)) throw Error('متن مشخصات محصول معتبر نیست.');
+      if (!p.name.trim() || !Object.hasOwn(kinds,p.kind) || !Object.hasOwn(stories,p.story) || !Object.hasOwn(statuses,p.status)) throw Error('نام، دسته، روایت یا وضعیت محصول معتبر نیست.');
+      if (p.collection !== undefined && (typeof p.collection !== 'string' || (p.collection !== '' && !Object.hasOwn(collections,p.collection)))) throw Error('کالکشن محصول معتبر نیست.');
+      if (p.status === 'published' && p.collection === '') throw Error('برای انتشار، کالکشن محصول را انتخاب کنید.');
+      if (!safeImage(p.image) || (p.thumbnail!==undefined&&!safeImage(p.thumbnail)) || ![0,1,2].includes(p.photo)) throw Error('تصویر محصول معتبر نیست.');
+      if (p.images !== undefined && (!Array.isArray(p.images) || p.images.length > 12 || p.images.some(src => !src || !safeImage(src)) || (p.images.length && p.images[0] !== p.image))) throw Error('گالری تصاویر محصول معتبر نیست.');
+      for (const key of ['price','stock']) if (p[key] !== null && (!Number.isSafeInteger(p[key]) || p[key] < 0 || p[key] > (key === 'stock' ? 1000000 : 1000000000000))) throw Error('قیمت یا موجودی معتبر نیست.');
+      if (!Array.isArray(p.sizes) || !p.sizes.length || new Set(p.sizes).size!==p.sizes.length || p.sizes.some(s => typeof s!=='string'||!Object.hasOwn(sizeLabels,s))) throw Error('حداقل یک اندازه معتبر انتخاب کنید.');
+      const object=value=>value&&typeof value==='object'&&!Array.isArray(value);
+      if(p.narrative!==undefined){
+        if(!object(p.narrative)||Object.keys(p.narrative).some(key=>!['text','quote','verse'].includes(key)))throw Error('ساختار قصه لباس معتبر نیست.');
+        for(const [key,value] of Object.entries(p.narrative))if(typeof value!=='string'||value.length>(key==='text'?8000:key==='verse'?2000:800))throw Error('متن قصه لباس معتبر نیست.');
+      }
+      if(p.details!==undefined){
+        if(!object(p.details)||Object.keys(p.details).some(key=>!Object.hasOwn(detailFields,key)&&!['embroideryHours','lengthCm','sizeNotes'].includes(key)))throw Error('ساختار جزئیات لباس معتبر نیست.');
+        for(const key of Object.keys(detailFields))if(p.details[key]!==undefined&&(typeof p.details[key]!=='string'||p.details[key].length>1500))throw Error('متن جزئیات لباس معتبر نیست.');
+        for(const [key,max] of [['embroideryHours',10000],['lengthCm',300]]){const value=p.details[key];if(value!==undefined&&value!==null&&(!Number.isFinite(value)||value<=0||value>max))throw Error('زمان هنر دست یا قد لباس معتبر نیست.');}
+        if(p.details.sizeNotes!==undefined&&(!object(p.details.sizeNotes)||Object.entries(p.details.sizeNotes).some(([size,note])=>!p.sizes.includes(size)||typeof note!=='string'||note.length>300)))throw Error('راهنمای سایز باید با اندازه های محصول هماهنگ باشد.');
+      }
+      if (p.sizeStock !== undefined) {
+        if (!p.sizeStock || Array.isArray(p.sizeStock) || typeof p.sizeStock !== 'object' || Object.keys(p.sizeStock).length !== p.sizes.length || p.sizes.some(s=>!Object.hasOwn(p.sizeStock,s)) || Object.keys(p.sizeStock).some(s=>!p.sizes.includes(s))) throw Error('موجودی باید برای هر سایز انتخاب شده مشخص شود.');
+        const counts=Object.values(p.sizeStock);
+        if (counts.some(n=>n!==null&&(!Number.isSafeInteger(n)||n<0||n>1000000))) throw Error('موجودی هر سایز باید عدد صحیح و نامنفی باشد.');
+        const total=counts.every(n=>n!==null)?counts.reduce((a,b)=>a+b,0):null;
+        if (p.stock!==total) throw Error('موجودی کل با موجودی سایزها یکسان نیست.');
+      }
+      if (p.madeToOrder !== undefined && typeof p.madeToOrder !== 'boolean') throw Error('وضعیت دوخت سفارشی معتبر نیست.');
+      for (const key of ['productionDays','dispatchDays']) if (p[key]!==undefined && p[key]!==null && (!Number.isSafeInteger(p[key])||p[key]<1||p[key]>365)) throw Error('زمان آماده سازی باید از ۱ تا ۳۶۵ روز کاری باشد.');
+      if (!Array.isArray(p.colors) || p.colors.length > 8 || p.colors.some(c => !/^#[a-f0-9]{6}$/i.test(c))) throw Error('کد رنگ معتبر نیست.');
+      if (p.createdAt!==undefined && (typeof p.createdAt!=='string'||!Number.isFinite(Date.parse(p.createdAt)))) throw Error('تاریخ ایجاد محصول معتبر نیست.');
+      if (typeof p.updatedAt !== 'string' || !Number.isFinite(Date.parse(p.updatedAt))) throw Error('تاریخ محصول معتبر نیست.');
+    }
+    if (new TextEncoder().encode(JSON.stringify(catalog)).length > 900000) throw Error('حجم کاتالوگ زیاد است. برای عکس‌ها از لینک تصویر استفاده کنید یا تعداد تصاویر را کاهش دهید.');
+    return catalog;
+  }
+  async function loadCatalog(){
+    const urls=[assetBase?new URL('products.json',assetBase).href:'products.json','https://api.hooyamode.ir/v1/catalog'];
+    for(const url of urls){
+      try{const response=await fetch(url,{cache:'no-cache',credentials:'omit',signal:AbortSignal.timeout(3000)});if(!response.ok)throw Error('catalog');return validate(await response.json());}catch{}
+    }
+    throw Error('دریافت مجموعه ممکن نشد.');
+  }
+  const latest=(products,count=3)=>[...products].sort((a,b)=>(b.createdAt||b.updatedAt).localeCompare(a.createdAt||a.updatedAt)||b.sku.localeCompare(a.sku,'en',{numeric:true})).slice(0,count);
+  function photo(p, extra = '') {
+    const photoSource=!extra.includes('full-photo')&&p.thumbnail&&safeImage(p.thumbnail)?p.thumbnail:p.image;
+    return photoSource && safeImage(photoSource) ? `<img class="product-photo custom-photo ${extra}" src="${escape(imageUrl(photoSource))}" alt="${escape(p.name)}" loading="lazy">` : `<div class="product-photo photo-${p.photo} ${extra}" role="img" aria-label="${escape(p.name)}"></div>`;
+  }
+  window.Hooya = {sizeLabels,sizeLabel,detailFields,contentOf,latest,kinds, stories, collections, collectionOf, statuses, escape, normalize, number, safeImage, imageUrl, images, validate,loadCatalog, photo};
+})();
+
+;
+'use strict';
+(() => {
+  const H = window.Hooya, $ = s => document.querySelector(s), esc = H.escape, num = H.number;
+  const STORAGE = 'hooya-catalog-workspace-v1';
+  const API = 'https://api.github.com/repos/atikia92-afk/hooya-mode/contents/docs/products.json';
+  let catalog, baseline, statusFilter = 'all', inventoryOnly = false, view = 'table', selected = new Set(), toastTimer;
+  let editingId = null, editingImage = '', editingImages = [], editorSnapshot = '', uploading = false, publishing = false, publishedMessage = '';
+  const clone = value => JSON.parse(JSON.stringify(value));
+  const icon = name => `<svg aria-hidden="true"><use href="#i-${name}"/></svg>`;
+  const lowStock = p => p.status !== 'archived' && (p.stock === null || p.stock < 3);
+  const price = p => p.price === null ? '<span class="unset">تعیین نشده</span>' : `${num(p.price)} <small>تومان</small>`;
+  const badge = p => `<span class="badge ${esc(p.status)}"><i class="dot"></i>${H.statuses[p.status]}</span>`;
+  const changes = () => {
+    if (!catalog || !baseline) return [];
+    const before = new Map(baseline.products.map(p => [p.id,p]));
+    const after = new Map(catalog.products.map(p => [p.id,p]));
+    const result = catalog.products.filter(p => !before.has(p.id) || JSON.stringify(p) !== JSON.stringify(before.get(p.id))).map(p => ({product:p, label:before.has(p.id)?'ویرایش محصول':'محصول جدید'}));
+    for (const p of baseline.products) if (!after.has(p.id)) result.push({product:p,label:'حذف از کاتالوگ'});
+    return result;
+  };
+  function toast(message) { $('#toast').textContent = message; $('#toast').classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('#toast').classList.remove('show'), 4200); }
+  function saveLocal() {
+    try { localStorage.setItem(STORAGE, JSON.stringify({catalog,baseline})); return true; }
+    catch { toast('فضای ذخیره مرورگر کافی نیست. نسخه پشتیبان دریافت کنید و حجم تصاویر را کاهش دهید.'); return false; }
+  }
+  function filtered() {
+    const term = H.normalize($('#search').value.trim()), kind = $('#kind-filter').value, collection = $('#collection-filter').value;
+    const list = catalog.products.filter(p => (statusFilter === 'all' || p.status === statusFilter) && (!inventoryOnly || lowStock(p)) && (kind === 'all' || p.kind === kind) && (collection === 'all' || H.collectionOf(p) === collection) && (!term || H.normalize(p.name+' '+p.sku+' '+p.type+' '+(H.collections[H.collectionOf(p)]||'')).includes(term)));
+    const sort = $('#sort').value;
+    list.sort((a,b) => sort === 'name' ? a.name.localeCompare(b.name,'fa') : sort === 'price' ? (a.price ?? Infinity)-(b.price ?? Infinity) : b.updatedAt.localeCompare(a.updatedAt));
+    return list;
+  }
+  function render() {
+    if (!catalog) return;
+    const all = catalog.products, list = filtered(), pending = changes().length;
+    $('#stat-total').textContent = num(all.length); $('#stat-published').textContent = num(all.filter(p=>p.status==='published').length);
+    $('#stat-drafts').textContent = num(all.filter(p=>p.status==='draft').length); $('#stat-stock').textContent = num(all.filter(lowStock).length);
+    $('#nav-count').textContent = num(all.length); $('#catalog-count').textContent = num(all.length)+' محصول'; $('#tab-total').textContent = num(all.length);
+    $('#sync-title').textContent = pending ? num(pending)+' محصول با تغییرهای منتشرنشده' : publishedMessage ? 'تغییرها به سایت ارسال شد' : 'کاتالوگ شما به‌روز است';
+    $('#sync-copy').textContent = pending ? 'تغییرها در فضای کار ذخیره شده‌اند. برای به‌روزرسانی ویترین، آن‌ها را منتشر کنید.' : publishedMessage || 'می‌توانید محصول جدید اضافه کنید یا جزئیات مجموعه را ویرایش کنید.';
+    $('#open-publish').disabled = !pending; $('#dirty-count').hidden = !pending; $('#dirty-count').textContent = num(pending);
+    $('#catalog-title').childNodes[0].textContent = inventoryOnly ? 'بررسی موجودی ' : 'کاتالوگ محصولات ';
+    document.querySelectorAll('[data-status]').forEach(b => { b.setAttribute('aria-selected', String(b.dataset.status===statusFilter)); b.tabIndex = b.dataset.status===statusFilter ? 0 : -1; });
+    $('#nav-inventory').classList.toggle('active', inventoryOnly);
+    $('#nav-drafts').classList.toggle('active', !inventoryOnly&&statusFilter==='draft');
+    $('#nav-products').classList.toggle('active', !inventoryOnly&&statusFilter!=='draft');
+    selected = new Set([...selected].filter(id=>list.some(p=>p.id===id)));
+    $('#bulk-bar').hidden = !selected.size; $('#selected-count').textContent = num(selected.size)+' محصول انتخاب شده';
+    $('#results-count').textContent = 'نمایش '+num(list.length)+' از '+num(all.length)+' محصول';
+    if (!list.length) {
+      $('#products-region').innerHTML = `<div class="empty-state">${icon('bag')}<h3>${all.length?'محصولی با این فیلتر پیدا نشد':'قصه اولین محصول را شروع کنید'}</h3><p>${all.length?'جست‌وجو یا فیلترها را تغییر دهید.':'نام، تصویر و مشخصات محصول را وارد کنید.'}</p><button class="button secondary" id="empty-action">${all.length?'پاک کردن فیلترها':'افزودن محصول'}</button></div>`;
+      $('#empty-action').onclick = () => all.length ? resetFilters() : openEditor();
+      return;
+    }
+    if (view === 'grid') {
+      $('#products-region').innerHTML = `<div class="cards">${list.map(p=>`<article class="catalog-card"><div class="card-image">${H.photo(p)}${badge(p)}</div><div class="card-copy"><h3>${esc(p.name)}</h3><p>${esc(p.type || H.kinds[p.kind])}</p><div><span>${price(p)}</span><button data-edit="${p.id}">ویرایش ←</button></div></div></article>`).join('')}</div>`;
+    } else {
+      $('#products-region').innerHTML = `<div class="product-table-wrap"><table class="product-table"><thead><tr><th><input type="checkbox" id="select-all" aria-label="انتخاب همه نتایج" ${selected.size===list.length?'checked':''}></th><th>محصول</th><th>دسته‌بندی</th><th>قیمت</th><th>موجودی</th><th>وضعیت</th><th><span class="unset">ویرایش</span></th></tr></thead><tbody>${list.map(p=>`<tr><td><input type="checkbox" data-select="${p.id}" aria-label="انتخاب ${esc(p.name)}" ${selected.has(p.id)?'checked':''}></td><td><button class="product-cell" data-edit="${p.id}"><span class="thumb">${H.photo(p)}</span><span><strong>${esc(p.name)}</strong><small>${esc(p.sku || p.id)}</small></span></button></td><td class="category-cell">${H.kinds[p.kind]}</td><td class="price-cell">${price(p)}</td><td>${p.stock===null?'<span class="unset">ثبت نشده</span>':`<span class="stock-value ${p.stock<3?'low':''}"><i class="dot ${p.stock<3?'amber':'green'}"></i>${num(p.stock)} <small>عدد</small></span>`}</td><td>${badge(p)}</td><td><button class="edit-button" data-edit="${p.id}" aria-label="ویرایش ${esc(p.name)}">${icon('edit')}</button></td></tr>`).join('')}</tbody></table></div>`;
+      const selectAll = $('#select-all'); selectAll.indeterminate = selected.size>0 && selected.size<list.length;
+      selectAll.onchange = () => { selected = selectAll.checked ? new Set(list.map(p=>p.id)) : new Set(); render(); };
+    }
+  }
+  function resetFilters() { statusFilter='all'; inventoryOnly=false; $('#search').value=''; $('#kind-filter').value='all'; $('#collection-filter').value='all'; selected.clear(); render(); }
+  function ask(title, copy, accept='ادامه') {
+    $('#confirm-title').textContent=title; $('#confirm-copy').textContent=copy; $('#confirm-yes').textContent=accept;
+    $('#confirm-dialog').showModal();
+    return new Promise(resolve => {
+      const dialog=$('#confirm-dialog');
+      function done(value) { dialog.oncancel=null; $('#confirm-no').onclick=null; $('#confirm-yes').onclick=null; dialog.close(); resolve(value); }
+      $('#confirm-yes').onclick=()=>done(true); $('#confirm-no').onclick=()=>done(false); dialog.oncancel=e=>{e.preventDefault();done(false);};
+    });
+  }
+  function readEditor() {
+    const f = new FormData($('#product-form')), existing = catalog.products.find(p=>p.id===editingId);
+    const sizes=f.getAll('size'), sizeStock=Object.fromEntries(sizes.map(s=>{const value=f.get('stock-'+s);return [s,value===null||value===''?null:Number(value)];}));
+    const days=key=>{const value=f.get(key);return value===null||value===''?null:Number(value);};
+    return {
+      id:editingId || 'product-'+crypto.randomUUID(), sku:String(f.get('sku')).trim(), name:String(f.get('name')).trim(),
+      kind:f.get('kind'), type:String(f.get('type')).trim(), story:existing?.story||'iran', collection:String(f.get('collection')||''), tag:String(f.get('tag')).trim(),
+      ...(existing?.thumbnail&&editingImage===existing.image?{thumbnail:existing.thumbnail}:{}),
+      photo:Number($('#sample-photo').value), image:editingImage, images:editingImage?[editingImage,...editingImages.slice(1)]:[], colors:String(f.get('colors')).split(/[,،]/).map(s=>s.trim()).filter(Boolean),
+      description:String(f.get('description')).trim(), price:f.get('price')===''?null:Number(f.get('price')),
+      stock:Object.values(sizeStock).every(n=>n!==null)?Object.values(sizeStock).reduce((a,b)=>a+b,0):null,
+      sizeStock, madeToOrder:f.get('madeToOrder')==='on', productionDays:days('productionDays'), dispatchDays:days('dispatchDays'),
+      narrative:{text:String(f.get('narrativeText')||'').trim(),quote:String(f.get('narrativeQuote')||'').trim(),verse:String(f.get('narrativeVerse')||'').trim()},
+      details:{...Object.fromEntries(Object.keys(H.detailFields).map(key=>[key,String(f.get(key)||'').trim()])),embroideryHours:days('embroideryHours'),lengthCm:days('lengthCm'),sizeNotes:Object.fromEntries(sizes.map(size=>[size,String(f.get('fit-'+size)||'').trim()]))},
+      sizes, status:f.get('status'), createdAt:existing?.createdAt||existing?.updatedAt||'', updatedAt:existing?.updatedAt || ''
+    };
+  }
+  function editorFingerprint() { const p=readEditor(); delete p.id; return JSON.stringify(p); }
+  function updatePreview() {
+    const p=readEditor(); $('#preview-name').textContent=p.name||'نام محصول شما'; $('#preview-type').textContent=p.type||'جنس و هنر دوخت';
+    $('#stock').value=p.stock??'';
+    $('#preview-price').textContent=p.price===null?'قیمت تعیین نشده':num(p.price)+' تومان';
+    $('#editor-photo').innerHTML=H.photo({...p,name:p.name||'پیش‌نمایش محصول'});
+  }
+  function openEditor(id) {
+    if (!catalog || publishing) return;
+    const p=catalog.products.find(p=>p.id===id) || {name:'',sku:'',kind:'vest',type:'',story:'iran',collection:'',tag:'',description:'',price:null,stock:null,sizes:['M'],colors:[],status:'draft',photo:0,image:''};
+    editingId=id||null; editingImage=p.image; editingImages=H.images(p).slice();
+    $('#product-form').reset(); $('#editor-title').textContent=id?'ویرایش '+p.name:'محصول جدید';
+    for (const field of ['name','sku','kind','type','collection','tag','description','price','stock','status']) $('#'+field).value=p[field]??'';
+    const content=H.contentOf(p);for(const key of Object.keys(H.detailFields))$('#'+key).value=content.details[key];
+    $('#embroideryHours').value=content.details.embroideryHours??'';$('#lengthCm').value=content.details.lengthCm??'';
+    for(const [field,key] of [['narrativeText','text'],['narrativeQuote','quote'],['narrativeVerse','verse']])$('#'+field).value=content.narrative[key];
+    $('#colors').value=p.colors.join(', '); $('#sample-photo').value=p.photo; $('#image-url').value=p.image.startsWith('https://')?p.image:'';
+    document.querySelectorAll('[name=size]').forEach(i=>i.checked=p.sizes.includes(i.value));
+    $('#madeToOrder').checked=!!p.madeToOrder; $('#productionDays').value=p.productionDays??''; $('#dispatchDays').value=p.dispatchDays??'';
+    renderSizeStock(p.sizeStock||{});renderSizeNotes(content.details.sizeNotes);
+    $('#form-error').textContent=''; $('#image-file').value=''; updatePreview(); editorSnapshot=editorFingerprint(); $('#editor').showModal();
+  }
+  async function closeEditor() {
+    if (uploading) return toast('لطفا تا پایان آماده‌سازی تصویر صبر کنید.');
+    if (editorFingerprint()!==editorSnapshot && !await ask('بستن بدون ذخیره؟','تغییرهای این محصول هنوز ذخیره نشده‌اند.','بستن ویرایشگر')) return;
+    $('#editor').close();
+  }
+  $('#product-form').addEventListener('input', updatePreview);
+  function renderSizeNotes(values){
+    const sizes=[...document.querySelectorAll('[name=size]:checked')].map(i=>i.value);
+    $('#size-notes').innerHTML=sizes.map(size=>`<div class="field"><label for="fit-${esc(size)}">راهنمای ${esc(H.sizeLabel(size))}</label><input id="fit-${esc(size)}" name="fit-${esc(size)}" maxlength="300" value="${esc(values[size]||'')}" placeholder="مثلا مناسب تا سایز ۴۴"></div>`).join('');
+  }
+  function renderSizeStock(values) {
+    const sizes=[...document.querySelectorAll('[name=size]:checked')].map(i=>i.value);
+    $('#size-stock').innerHTML=sizes.map(size=>`<label class="size-stock-row"><span dir="ltr">${esc(H.sizeLabel(size))}</span><input name="stock-${esc(size)}" aria-label="موجودی آماده سایز ${esc(size)}" type="number" min="0" max="1000000" step="1" value="${values[size]??''}" placeholder="نامشخص"></label>`).join('');
+  }
+  document.querySelectorAll('[name=size]').forEach(input=>input.addEventListener('change',()=>{const values=Object.fromEntries([...document.querySelectorAll('#size-stock input')].map(i=>[i.name.slice(6),i.value]));const notes=Object.fromEntries([...document.querySelectorAll('#size-notes input')].map(i=>[i.name.slice(4),i.value]));renderSizeStock(values);renderSizeNotes(notes);updatePreview();}));
+  $('#product-form').onsubmit=e=>{
+    e.preventDefault(); if(uploading)return; $('#form-error').textContent='';
+    try {
+      const p=readEditor(); p.updatedAt=new Date().toISOString();p.createdAt=p.createdAt||p.updatedAt;
+      if (p.sku && catalog.products.some(x=>x.id!==p.id && H.normalize(x.sku)===H.normalize(p.sku))) throw Error('این کد قبلا برای محصول دیگری ثبت شده است.');
+      const next=clone(catalog), index=next.products.findIndex(x=>x.id===p.id);
+      if(index<0)next.products.unshift(p);else next.products[index]=p;
+      H.validate(next); catalog=next; publishedMessage=''; const persisted=saveLocal(); render(); $('#editor').close(); toast(persisted?'محصول ذخیره شد. برای به‌روزرسانی سایت، تغییرها را منتشر کنید.':'ذخیره در مرورگر ممکن نشد. پیش از بستن این صفحه نسخه پشتیبان دریافت کنید.');
+    } catch(error) { $('#form-error').textContent=error.message; }
+  };
+  $('#image-url').addEventListener('change',()=>{
+    const value=$('#image-url').value.trim();
+    if(value && (!H.safeImage(value)||!value.startsWith('https://'))) { $('#form-error').textContent='لینک تصویر باید با https:// شروع شود.'; return; }
+    editingImage=value; $('#form-error').textContent=''; updatePreview();
+  });
+  $('#remove-image').onclick=()=>{ editingImage=''; $('#image-url').value=''; $('#image-file').value=''; updatePreview(); };
+  $('#sample-photo').onchange=()=>{ editingImage=''; $('#image-url').value=''; updatePreview(); };
+  $('#image-file').onchange=async()=>{
+    const file=$('#image-file').files[0]; if(!file)return;
+    uploading=true; $('#save-product').disabled=true; $('#form-error').textContent='';
+    let url;
+    try {
+      if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>10*1024*1024)throw Error('یک تصویر JPG، PNG یا WEBP کوچک‌تر از ۱۰ مگابایت انتخاب کنید.');
+      url=URL.createObjectURL(file); const image=new Image(); image.src=url; await image.decode();
+      const scale=Math.min(1,900/Math.max(image.width,image.height));
+      const canvas=document.createElement('canvas'); canvas.width=Math.round(image.width*scale); canvas.height=Math.round(image.height*scale);
+      const ctx=canvas.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.drawImage(image,0,0,canvas.width,canvas.height);
+      let encoded=canvas.toDataURL('image/webp',.8);
+      if(encoded.length>230000)encoded=canvas.toDataURL('image/webp',.55);
+      if(encoded.length>300000)throw Error('این تصویر جزئیات زیادی دارد. تصویر کوچک‌تری انتخاب کنید یا لینک آن را وارد کنید.');
+      editingImage=encoded; $('#image-url').value=''; updatePreview();
+    } catch(error) { $('#form-error').textContent=error.message; }
+    finally { if(url)URL.revokeObjectURL(url); uploading=false; $('#save-product').disabled=false; }
+  };
+  document.addEventListener('click',async e=>{
+    const edit=e.target.closest('[data-edit]'); if(edit)openEditor(edit.dataset.edit);
+    const close=e.target.closest('[data-close]'); if(close){ const id=close.dataset.close; if(id==='editor')await closeEditor();else if(!publishing){$('#'+id).close();$('#github-token').value='';} }
+    const bulk=e.target.closest('[data-bulk]');
+    if(bulk && !publishing){ const state=bulk.dataset.bulk; if(!await ask('تغییر وضعیت محصولات',`وضعیت ${num(selected.size)} محصول به «${H.statuses[state]}» تغییر کند؟`,'ذخیره وضعیت'))return;
+      catalog.products.forEach(p=>{if(selected.has(p.id)){p.status=state;p.updatedAt=new Date().toISOString();}}); selected.clear(); const persisted=saveLocal(); render(); toast(persisted?'وضعیت محصولات ذخیره شد. تغییرها هنوز منتشر نشده‌اند.':'ذخیره در مرورگر ممکن نشد. پیش از بستن صفحه نسخه پشتیبان بگیرید.'); }
+  });
+  document.addEventListener('change', e=>{ if(e.target.matches('[data-select]')){ if(e.target.checked)selected.add(e.target.dataset.select);else selected.delete(e.target.dataset.select); render(); } });
+  $('#editor').addEventListener('cancel',e=>{e.preventDefault();closeEditor();});
+  $('#publish-dialog').addEventListener('cancel',e=>{ if(publishing)e.preventDefault();else $('#github-token').value=''; });
+  $('#add-product').onclick=()=>openEditor(); $('#side-add').onclick=()=>openEditor();
+  $('#search').oninput=render; $('#kind-filter').onchange=render; $('#collection-filter').onchange=render; $('#sort').onchange=render;
+  document.querySelectorAll('[data-status]').forEach(b=>b.onclick=()=>{statusFilter=b.dataset.status;inventoryOnly=false;selected.clear();render();});
+  $('.tabs').addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const tabs=[...document.querySelectorAll('[data-status]')];let i=tabs.indexOf(document.activeElement);i=e.key==='Home'?0:e.key==='End'?tabs.length-1:(i+(e.key==='ArrowLeft'?1:-1)+tabs.length)%tabs.length;tabs[i].click();tabs[i].focus();});
+  $('#nav-inventory').onclick=()=>{resetFilters();inventoryOnly=true;render();}; $('#nav-drafts').onclick=()=>{resetFilters();statusFilter='draft';render();};
+  $('#nav-products').onclick=resetFilters;
+  $('#table-view').onclick=()=>setView('table'); $('#grid-view').onclick=()=>setView('grid');
+  function setView(next){view=next;selected.clear();for(const v of ['table','grid']){$('#'+v+'-view').classList.toggle('selected',v===view);$('#'+v+'-view').setAttribute('aria-pressed',String(v===view));}render();}
+  $('#clear-selection').onclick=()=>{selected.clear();render();};
+  $('#export').onclick=()=>{
+    if(!catalog)return; const url=URL.createObjectURL(new Blob([JSON.stringify(catalog,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='hooya-products-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('نسخه پشتیبان دریافت شد.');
+  };
+  $('#import').onclick=()=>{if(catalog&&!publishing)$('#import-file').click();};
+  $('#import-file').onchange=async()=>{
+    const file=$('#import-file').files[0];if(!file)return;
+    try { if(file.size>900000)throw Error('فایل باید کوچک‌تر از ۹۰۰ کیلوبایت باشد.');const imported=H.validate(JSON.parse(await file.text()));
+      if(!await ask('بازیابی کاتالوگ',`فهرست فعلی با ${num(imported.products.length)} محصول فایل جایگزین می‌شود. این تغییر تا انتشار، روی سایت اعمال نمی‌شود.`,'بازیابی فایل'))return;
+      catalog={...clone(imported),version:baseline.version};const persisted=saveLocal();resetFilters();toast(persisted?'فایل بازیابی شد. تغییرها را بررسی و منتشر کنید.':'ذخیره در مرورگر ممکن نشد. پیش از بستن صفحه نسخه پشتیبان بگیرید.');
+    } catch(error){toast(error.message);} finally{$('#import-file').value='';}
+  };
+  $('#open-publish').onclick=()=>{
+    $('#publish-summary').innerHTML=`<div class="change-list">${changes().map(c=>`<div><strong>${esc(c.product.name)}</strong><span>${esc(c.label)} · ${H.statuses[c.product.status]}</span></div>`).join('')}</div>`;
+    $('#publish-error').textContent='';$('#github-token').value='';$('#publish-dialog').showModal();
+  };
+  const encode = value => { const bytes=new TextEncoder().encode(value); let binary='';for(const byte of bytes)binary+=String.fromCharCode(byte);return btoa(binary); };
+  const decode = value => { const binary=atob(value.replace(/\s/g,''));return new TextDecoder().decode(Uint8Array.from(binary,c=>c.charCodeAt(0))); };
+  async function github(token, method='GET', body) {
+    const response=await fetch(API+(method==='GET'?'?ref=main&t='+Date.now():''),{method,cache:'no-store',headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+token,'Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'},...(body?{body:JSON.stringify(body)}:{})});
+    if(!response.ok){const code=response.status;throw Error(code===401?'کلید دسترسی معتبر نیست.':code===403?'دسترسی نوشتن برای این مخزن وجود ندارد یا محدودیت GitHub فعال است.':code===409?'محصولات هم‌زمان در جای دیگری تغییر کرده‌اند. دوباره کاتالوگ را دریافت کنید.':code===404?'مخزن یا فایل در دسترس این کلید نیست. دسترسی مخزن hooya-mode را بررسی کنید.':`ارسال به GitHub انجام نشد (کد ${code}). تغییرهای محلی محفوظ‌اند.`);}
+    return response.json();
+  }
+  $('#publish-form').onsubmit=async e=>{
+    e.preventDefault();if(publishing)return;publishing=true;$('#publish-submit').disabled=true;$('#publish-error').textContent='';
+    const token=$('#github-token').value.trim();$('#github-token').value='';
+    try {
+      H.validate(catalog);const remote=await github(token);
+      if(remote.encoding!=='base64')throw Error('دریافت کاتالوگ از GitHub کامل نشد.');
+      const current=H.validate(JSON.parse(decode(remote.content)));
+      // Compare full baseline, not just the timestamp: never overwrite another editor silently.
+      if(JSON.stringify(current)!==JSON.stringify(baseline))throw Error('کاتالوگ سایت از زمان شروع کار تغییر کرده است. یک پشتیبان بگیرید و با بازکردن داشبورد در مرورگر دیگر، نسخه جدید را بررسی کنید. برای حفظ تغییرها، ارسال متوقف شد.');
+      const next=clone(catalog);next.version=new Date().toISOString();
+      await github(token,'PUT',{message:'Update Hooya product catalog from dashboard',content:encode(JSON.stringify(next,null,2)+'\n'),sha:remote.sha,branch:'main'});
+      catalog=next;baseline=clone(next);saveLocal();publishedMessage='نمایش نسخه جدید در ویترین ممکن است چند دقیقه طول بکشد.';render();$('#publish-dialog').close();toast('تغییرها به مخزن سایت ارسال شد. نسخه جدید به‌زودی در ویترین نمایش داده می‌شود.');
+    }catch(error){$('#publish-error').textContent=error.message||'ارتباط برقرار نشد. اتصال اینترنت را بررسی کنید.';}
+    finally{publishing=false;$('#publish-submit').disabled=false;}
+  };
+  window.addEventListener('beforeunload',e=>{if(publishing || ($('#editor').open&&editorFingerprint()!==editorSnapshot)){e.preventDefault();e.returnValue='';}});
+  async function boot() {
+    $('#today').textContent=new Intl.DateTimeFormat('fa-IR',{dateStyle:'long',timeZone:'Asia/Tehran'}).format(new Date());
+    try {
+      let saved;try{const raw=localStorage.getItem(STORAGE);if(raw){saved=JSON.parse(raw);H.validate(saved.catalog);H.validate(saved.baseline);}}catch{saved=null;}
+      let snapshot;try{snapshot=H.validate(JSON.parse($('#admin-catalog-snapshot')?.textContent||'null'));}catch{}
+      const restore=live=>{
+        if(saved && JSON.stringify(saved.catalog.products)!==JSON.stringify(saved.baseline.products)){
+          catalog=saved.catalog;baseline=saved.baseline;
+          if(live&&JSON.stringify(live)!==JSON.stringify(baseline))toast('تغییرهای محلی بازیابی شدند. کاتالوگ سایت نیز تغییر کرده؛ پیش از انتشار نسخه‌ها را بررسی کنید.');
+        }else if(saved && (!live || new Date(saved.baseline.version)>new Date(live.version))){catalog=saved.catalog;baseline=saved.baseline;}
+        else{catalog=clone(live);baseline=clone(live);}
+        render();
+      };
+      if(snapshot||saved)restore(snapshot);
+      try{
+        const response=await fetch('../products.json',{cache:'no-store',signal:AbortSignal.timeout(4000)});if(!response.ok)throw Error();const live=H.validate(await response.json());
+        if(!catalog)restore(live);
+        else if(changes().length){if(JSON.stringify(live)!==JSON.stringify(baseline))toast('کاتالوگ سایت تغییر کرده است. تغییرهای محلی شما حفظ شده‌اند.');}
+        else if(new Date(live.version)>=new Date(baseline.version)){catalog=clone(live);baseline=clone(live);render();}
+      }catch{if(!catalog)throw Error('دریافت محصولات ممکن نشد. اتصال اینترنت را بررسی و صفحه را دوباره بارگذاری کنید.');}
+    }catch(error){$('#sync-title').textContent='دریافت کاتالوگ انجام نشد';$('#sync-copy').textContent=error.message;$('#products-region').innerHTML='<div class="error-state"><h3>ارتباط با کاتالوگ برقرار نشد</h3><p>صفحه را دوباره بارگذاری کنید. تغییرهای ذخیره‌شده شما در مرورگر محفوظ‌اند.</p><button class="button secondary" onclick="location.reload()">تلاش دوباره</button></div>';}
+  }
+  boot();
+})();
+</script>
 </body></html>

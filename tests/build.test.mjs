@@ -19,7 +19,13 @@ test('rebuilding pages is repeatable and emits exactly one working bundle and pu
   assert.ok(!publicAdmin.includes('product-form'));
   const pages=['index.html','products.html','cart.html','checkout.html','about.html','contact.html'];
   const previous=await Promise.all(pages.map(name=>readFile(path.join(temporary,'docs',name),'utf8')));
+  const privateBefore=await readFile(path.join(temporary,'server','admin-ui','index.html'),'utf8');
   build();
+  const privateAfter=await readFile(path.join(temporary,'server','admin-ui','index.html'),'utf8');
+  assert.equal(privateAfter,privateBefore);
+  assert.equal([...privateAfter.matchAll(/<script data-hooya-admin-bundle=/g)].length,1);
+  assert.ok(!/<script[^>]*src=/.test(privateAfter));
+  for(const [,attributes,content] of privateAfter.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g))if(!attributes.includes('application/json'))new vm.Script(content);
   for(const [index,name] of pages.entries()){
    const html=await readFile(path.join(temporary,'docs',name),'utf8');
    assert.equal(html,previous[index],name+' must not grow on repeated builds');

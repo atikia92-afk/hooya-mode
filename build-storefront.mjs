@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import path from 'node:path';
 const docs=new URL('./docs/',import.meta.url);
+const adminDirectory=new URL('./server/admin-ui/',import.meta.url);
 const bundles=[
  {file:'storefront-bundle.js',sources:['catalog.js','product-motion.js','product-content.js','cart.js','storefront.js','hero-slider.js'],pages:['index.html','products.html']},
  {file:'cart-bundle.js',sources:['catalog.js','cart.js','about.js','cart-page.js'],pages:['cart.html']},
@@ -22,6 +23,17 @@ for(const bundle of bundles){
   html=html.replace('</body>',()=>'<script data-hooya-bundle="'+bundle.file+'" data-version="'+version+'">'+safeContents+'</script>\n</body>');
   await fs.writeFile(file,html);
  }
+}
+{
+ const parts=await Promise.all([new URL('catalog.js',docs),new URL('admin.js',adminDirectory)].map(async file=>(await fs.readFile(file,'utf8')).replaceAll('\r\n','\n')));
+ const contents=parts.join('\n;\n'),version=createHash('sha256').update(contents).digest('hex').slice(0,12);
+ const file=new URL('index.html',adminDirectory);let html=await fs.readFile(file,'utf8');
+ html=html.replace(/<script\b[^>]*\bsrc="(?:\.\.\/catalog\.js|admin\.js)[^"]*"[^>]*><\/script>\s*/g,'');
+ html=html.replace(/<script\b[^>]*\bdata-hooya-admin-bundle[^>]*>[\s\S]*?<\/script>\s*/g,'');
+ html=html.replace(/<script\b[^>]*\bid="admin-catalog-snapshot"[^>]*>[\s\S]*?<\/script>\s*/g,'');
+ const snapshot=JSON.stringify(JSON.parse(await fs.readFile(new URL('products.json',docs),'utf8'))).replaceAll('<','\\u003c');
+ html=html.replace('</body>',()=>'<script id="admin-catalog-snapshot" type="application/json">'+snapshot+'</script>\n<script data-hooya-admin-bundle="'+version+'" data-asset-base="/">'+contents.replace(/<\/script/gi,'<\\/script')+'</script>\n</body>');
+ await fs.writeFile(file,html);
 }
 // Every shopping page has an immediately usable public snapshot. This contains
 // catalog data only; customer records and browser selections are never embedded.
@@ -52,5 +64,5 @@ async function inlineStyles(directory,overrides={}){
  }
 }
 await inlineStyles(docs);
-await inlineStyles(new URL('./server/admin-ui/',import.meta.url),{'../fonts.css':new URL('fonts.css',docs)});
+await inlineStyles(adminDirectory,{'../fonts.css':new URL('fonts.css',docs)});
 console.log('Rebuilt dependency bundles and embedded first-render styles.');
