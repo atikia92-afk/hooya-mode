@@ -13,10 +13,11 @@ git --git-dir="$repository" fetch --depth=1 origin main
 commit=$(git --git-dir="$repository" rev-parse FETCH_HEAD)
 current=$(python3 -c 'import json; print(json.load(open("/var/www/hooyamode.ir/current/release.json"))["commit"])' 2>/dev/null || true)
 admin_current=$(basename "$(readlink -f "$state/admin-current" || true)")
-[[ $current != "$commit" || $admin_current != "$commit" ]] || exit 0
+backend_current=$(basename "$(readlink -f "$state/backend-current" || true)")
+[[ $current != "$commit" || $admin_current != "$commit" || $backend_current != "$commit" ]] || exit 0
 work=$(mktemp -d "$state/build-XXXXXX")
 trap 'rm -rf -- "$work"' EXIT
-git --git-dir="$repository" archive "$commit" docs build-storefront.mjs server/admin-ui | tar -xf - -C "$work"
+git --git-dir="$repository" archive "$commit" docs build-storefront.mjs server | tar -xf - -C "$work"
 node "$work/build-storefront.mjs"
 mkdir -p "$state/admin-releases"
 if [[ ! -d $state/admin-releases/$commit ]]; then
@@ -26,6 +27,18 @@ if [[ ! -d $state/admin-releases/$commit ]]; then
 fi
 ln -s "$state/admin-releases/$commit" "$state/.admin-next-$$"
 mv -Tf "$state/.admin-next-$$" "$state/admin-current"
+mkdir -p "$state/backend-releases"
+if [[ ! -d $state/backend-releases/$commit ]]; then
+    mkdir -p "$state/backend-releases/$commit/docs"
+    cp -a "$work/server" "$state/backend-releases/$commit/server"
+    cp "$work/docs/customer-data.js" "$state/backend-releases/$commit/docs/"
+    node --check "$state/backend-releases/$commit/server/admin-server.mjs"
+    node --check "$state/backend-releases/$commit/server/orders.mjs"
+    find "$state/backend-releases/$commit" -type d -exec chmod 0755 {} +
+    find "$state/backend-releases/$commit" -type f -exec chmod 0644 {} +
+fi
+ln -s "$state/backend-releases/$commit" "$state/.backend-next-$$"
+mv -Tf "$state/.backend-next-$$" "$state/backend-current"
 python3 - "$work/docs/release.json" "$commit" <<'PY'
 import json,sys,datetime
 with open(sys.argv[1],'w') as file:

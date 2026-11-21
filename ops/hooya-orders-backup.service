@@ -1,0 +1,13 @@
+[Unit]
+Description=Private Hooya order database snapshot
+[Service]
+Type=oneshot
+User=hooya-admin
+Group=hooya-admin
+ExecStart=/usr/bin/python3 /var/lib/hooya-source/backend-current/server/backup-orders.py
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/hooya-orders
+UMask=0077

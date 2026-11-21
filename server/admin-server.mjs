@@ -4,6 +4,8 @@ import {promisify} from 'node:util';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {createOrderStore} from './order-store.mjs';
+import {createOrders,sendKavenegar} from './orders.mjs';
 
 const derive=promisify(scrypt),COOKIE='__Host-hooya_admin',LOGIN='__Host-hooya_login';
 const digest=value=>createHash('sha256').update(value).digest('hex');
@@ -13,7 +15,7 @@ const cookie=(name,value,seconds)=>`${name}=${value}; Path=/; Max-Age=${seconds}
 // Opaque browser contexts may send Origin: null. They still have to prove the
 // unpredictable form token and matching HttpOnly cookie; foreign origins fail.
 const allowedOrigin=value=>!value||value==='null'||value==='https://hooyamode.ir';
-const types={'index.html':'text/html; charset=utf-8','admin.css':'text/css; charset=utf-8','admin.js':'application/javascript; charset=utf-8'};
+const types={'index.html':'text/html; charset=utf-8','orders.html':'text/html; charset=utf-8','orders.css':'text/css; charset=utf-8','orders.js':'application/javascript; charset=utf-8','admin.css':'text/css; charset=utf-8','admin.js':'application/javascript; charset=utf-8'};
 
 export async function passwordRecord(username,password){
  if(!/^[A-Za-z][A-Za-z0-9_.-]{2,31}$/.test(username)||typeof password!=='string'||password.length<16||password.length>128)throw Error('Invalid administrator credential format');
@@ -21,7 +23,7 @@ export async function passwordRecord(username,password){
  return {username,salt:salt.toString('base64'),hash:hash.toString('base64')};
 }
 
-export function createAdminServer({credentials,loginTemplate,readAdminFile,now=Date.now}){
+export function createAdminServer({credentials,loginTemplate,readAdminFile,commerce,now=Date.now}){
  if(!credentials||!/^[A-Za-z][A-Za-z0-9_.-]{2,31}$/.test(credentials.username)||Buffer.from(credentials.salt||'','base64').length!==32||Buffer.from(credentials.hash||'','base64').length!==64)throw Error('Invalid administrator configuration');
  const sessions=new Map(),challenges=new Map(),failures=new Map(),rateSalt=randomBytes(32).toString('hex');
  let checking=0;
@@ -43,6 +45,7 @@ export function createAdminServer({credentials,loginTemplate,readAdminFile,now=D
  }
  const handler=async(request,response)=>{
   const pathname=new URL(request.url,'http://localhost').pathname;
+  if(commerce&&await commerce(request,response,req=>{const key=session(req);return key?sessions.get(key):null;}))return;
   if(request.method==='GET'&&pathname==='/admin/login'){
    if(session(request)){respond(response,303,'',{Location:'/admin/'});return;}
    loginPage(response);return;
@@ -86,16 +89,16 @@ export function createAdminServer({credentials,loginTemplate,readAdminFile,now=D
    respond(response,303,'',{Location:'/admin/login','Set-Cookie':cookie(COOKIE,'',0)});return;
   }
   if(request.method!=='GET'&&request.method!=='HEAD'){respond(response,405,'',{Allow:'GET, HEAD'});return;}
-  const file=pathname==='/admin/'||pathname==='/admin/index.html'?'index.html':pathname==='/admin/admin.js'?'admin.js':pathname==='/admin/admin.css'?'admin.css':null;
+  const file=pathname==='/admin/'||pathname==='/admin/index.html'?'index.html':pathname==='/admin/orders'||pathname==='/admin/orders.html'?'orders.html':['admin.js','admin.css','orders.js','orders.css'].find(name=>pathname==='/admin/'+name)||null;
   if(!file){respond(response,404,'پیدا نشد.');return;}
   const key=session(request);
   if(!key){
-   if(file==='index.html')respond(response,303,'',{Location:'/admin/login'});
+   if(file.endsWith('.html'))respond(response,303,'',{Location:'/admin/login'});
    else respond(response,401,'دسترسی نیاز به ورود دارد.');
    return;
   }
   let body=request.method==='HEAD'?'':await readAdminFile(file);
-  if(file==='index.html')body=body.toString().replaceAll('__LOGOUT_CSRF__',sessions.get(key).csrf);
+  if(file.endsWith('.html'))body=body.toString().replaceAll('__LOGOUT_CSRF__',sessions.get(key).csrf);
   respond(response,200,body,{'Content-Type':types[file]});
  };
  const server=http.createServer({maxHeaderSize:8192},(request,response)=>handler(request,response).catch(()=>{if(!response.headersSent)respond(response,503,'سرویس ورود موقتا در دسترس نیست.');else response.end();}));
@@ -107,6 +110,13 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1]
  const credentials=JSON.parse(await fs.readFile(process.env.HOOYA_ADMIN_CREDENTIALS||'/etc/hooya-admin/credentials.json','utf8'));
  const loginTemplate=await fs.readFile(new URL('./admin-login.html',import.meta.url),'utf8');
  const directory=process.env.HOOYA_ADMIN_UI||'/var/lib/hooya-source/admin-current';
- const server=createAdminServer({credentials,loginTemplate,readAdminFile:name=>fs.readFile(path.join(directory,name))});
+ const state=process.env.HOOYA_ORDER_STATE||'/var/lib/hooya-orders';
+ const secret=(await fs.readFile(path.join(state,'secret'),'utf8')).trim();
+ const smsFile=path.join(state,'sms.json');
+ const readSmsConfig=async()=>{try{return JSON.parse(await fs.readFile(smsFile,'utf8'));}catch(error){if(error.code==='ENOENT')return {};throw error;}};
+ const commerce=createOrders({store:createOrderStore(path.join(state,'orders.sqlite3')),secret,
+  readCatalog:async()=>JSON.parse(await fs.readFile(process.env.HOOYA_CATALOG||'/var/www/hooyamode.ir/current/products.json','utf8')),
+  readSmsConfig,writeSmsConfig:async config=>{const temporary=smsFile+'.next';await fs.writeFile(temporary,JSON.stringify(config),{mode:0o600});await fs.rename(temporary,smsFile);},sendSms:sendKavenegar});
+ const server=createAdminServer({credentials,loginTemplate,readAdminFile:name=>fs.readFile(path.join(directory,name)),commerce});
  server.listen(18481,'127.0.0.1',()=>console.log('Hooya administrator sign-in ready on loopback.'));
 }

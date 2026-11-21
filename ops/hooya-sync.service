@@ -8,6 +8,7 @@ Type=oneshot
 User=atie
 Group=atie
 ExecStart=/usr/local/lib/hooya/hooya-sync.sh
+ExecStartPost=+/usr/local/lib/hooya/hooya-reload-backend.sh
 TimeoutStartSec=120
 NoNewPrivileges=true
 PrivateTmp=true

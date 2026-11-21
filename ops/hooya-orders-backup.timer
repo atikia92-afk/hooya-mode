@@ -1,0 +1,8 @@
+[Unit]
+Description=Daily private Hooya order backup
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=600
+[Install]
+WantedBy=timers.target

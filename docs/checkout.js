@@ -46,11 +46,17 @@
     if(payload!==lastPayload){requestKey=crypto.randomUUID();lastPayload=payload;}
     submitting=true;button.disabled=true;button.textContent='در حال ثبت اطلاعات…';form.setAttribute('aria-busy','true');
     try{
-      const response=await fetch(endpoint+'/v1/customer-details',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':requestKey},body:payload,credentials:'omit',signal:AbortSignal.timeout(20000)});
+      const response=await fetch(endpoint+'/v1/customer-details',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':requestKey},body:payload,credentials:'same-origin',signal:AbortSignal.timeout(20000)});
       const data=await response.json();
       if(!response.ok){if(data.errors)showErrors(data.errors);else error(data.message||'ثبت اطلاعات انجام نشد. اطلاعات فرم حفظ شده؛ دوباره تلاش کنید.');return;}
       if(data.status!=='received'||typeof data.reference!=='string'||!/^[a-f0-9-]{36}$/.test(data.reference))throw Error('Invalid confirmation');
       $('#customer-reference').textContent=data.reference;$('#billing-layout').hidden=true;$('#billing-status').textContent='';$('#billing-success').hidden=false;form.reset();$('#shipping-fields').disabled=true;$('#shipping-fields').hidden=true;$('#success-title').focus();
+      if(typeof data.trackingToken==='string'&&/^[A-Za-z0-9_-]{43}$/.test(data.trackingToken)){
+        const link=document.createElement('a');link.className='button';link.textContent='پیگیری سفارش و حساب من';link.href='account.html#'+new URLSearchParams({order:data.reference,key:data.trackingToken});
+        const note=document.createElement('p');note.textContent='لینک پیگیری خصوصی را نزد خود نگه دارید. سفارش ثبت شده و هنوز پرداخت نشده است.';
+        $('#billing-success').append(note,link);
+        if(JSON.stringify(C.read(products))===JSON.stringify(lines)){C.save([]);$('#bag-count').textContent=H.number(0);}
+      }
     }catch{error('تایید ثبت اطلاعات دریافت نشد. اطلاعات فرم حفظ شده؛ دوباره تلاش کنید. تلاش مجدد، ثبت تکراری ایجاد نمی‌کند.');}
     finally{submitting=false;button.textContent='ثبت اطلاعات';button.disabled=!available;form.removeAttribute('aria-busy');}
   };
@@ -68,4 +74,6 @@
     if(!products.length){$('#billing-empty').hidden=false;$('#billing-empty').querySelector('h2').textContent='دریافت سبد خرید ممکن نشد';$('#billing-empty').querySelector('p').textContent='انتخاب های قبلی شما حفظ شده‌اند. لطفا صفحه را دوباره بارگذاری کنید.';}
   }
   window.addEventListener('storage',event=>{if(event.key==='hooya-demo-bag'&&products.length&&!submitting&&$('#billing-success').hidden){lines=C.read(products);render();$('#billing-status').textContent='سبد خرید به‌روز شد. انتخاب ها را پیش از ثبت بررسی کنید.';}});
+  // Only a verified customer session can restore saved contact information.
+  try{const response=await fetch('/api/customer/v1/orders',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(4000)});if(response.ok){const {orders}=await response.json(),last=orders?.[0];if(last&&!keys.some(key=>!['country','province'].includes(key)&&$('#billing-'+key).value))for(const key of keys)$('#billing-'+key).value=last.billing[key]||'';}}catch{}
 })();

@@ -8,7 +8,8 @@ const bundles=[
  {file:'cart-bundle.js',sources:['catalog.js','cart.js','about.js','cart-page.js'],pages:['cart.html']},
  {file:'checkout-bundle.js',sources:['catalog.js','cart.js','customer-data.js','checkout-config.js','checkout.js'],pages:['checkout.html']},
  {file:'about-bundle.js',sources:['about.js'],pages:['about.html']},
- {file:'contact-bundle.js',sources:['about.js','contact.js'],pages:['contact.html']}
+ {file:'contact-bundle.js',sources:['about.js','contact.js'],pages:['contact.html']},
+ {file:'account-bundle.js',sources:['account.js'],pages:['account.html']}
 ];
 for(const bundle of bundles){
  const parts=await Promise.all(bundle.sources.map(async name=>'/* '+name+' */\n'+(await fs.readFile(new URL(name,docs),'utf8')).replaceAll('\r\n','\n')));
@@ -65,4 +66,26 @@ async function inlineStyles(directory,overrides={}){
 }
 await inlineStyles(docs);
 await inlineStyles(adminDirectory,{'../fonts.css':new URL('fonts.css',docs)});
+// Keep order management behind the same server session as the catalog editor.
+{
+ const file=new URL('orders.html',adminDirectory);let html=await fs.readFile(file,'utf8');
+ html=html.replace(/<script src="orders.js"><\/script>/g,'').replace(/<script data-hooya-orders>[\s\S]*?<\/script>/g,'');
+ const js=(await fs.readFile(new URL('orders.js',adminDirectory),'utf8')).replaceAll('\r\n','\n');
+ html=html.replace('</body>',()=>'<script data-hooya-orders>'+js.replace(/<\/script/gi,'<\\/script')+'</script></body>');await fs.writeFile(file,html);
+ const home=new URL('index.html',adminDirectory);let admin=await fs.readFile(home,'utf8');
+ if(!admin.includes('id="nav-orders"'))admin=admin.replace('<nav>','<nav><a class="nav-item" id="nav-orders" href="/admin/orders">سفارش ها</a>');
+ if(!admin.includes('id="top-orders"'))admin=admin.replace('<div class="topbar-end">','<div class="topbar-end"><a class="button secondary" id="top-orders" href="/admin/orders">سفارش ها</a>');
+ await fs.writeFile(home,admin);
+}
+for(const name of ['index.html','products.html','cart.html','checkout.html','about.html','contact.html']){
+ const file=new URL(name,docs);let html=await fs.readFile(file,'utf8');
+ if(!html.includes('data-account-link'))html=html.replace(/(<h[23][^>]*>ارتباط با هویا<\/h[23]>)/, '$1<a href="account.html" data-account-link>حساب من و پیگیری سفارش</a>');
+ if(name==='checkout.html'){
+  if(!html.includes('data-account-link'))html=html.replace('<div id="billing-status"','<p class="billing-intro"><a href="account.html" data-account-link>ورود به حساب من و دیدن سفارش ها</a></p><div id="billing-status"');
+  html=html.replace('tabindex="-1">اطلاعات شما ثبت شد</h2>','tabindex="-1">سفارش شما ثبت شد</h2>').replace('مشخصات و انتخاب های شما برای هماهنگی خرید به هویا رسید. هنوز پرداخت یا خریدی انجام نشده است.','سفارش شما برای بررسی موجودی و هماهنگی آماده سازی به هویا رسید. هنوز پرداختی انجام نشده است.').replace('کد پیگیری ثبت اطلاعات</span>','کد پیگیری سفارش</span>');
+ }
+ // Retain an honest development label now that order intake is operational.
+ html=html.replaceAll('نسخه نمایشی · ثبت سفارش و پرداخت فعال نیست','نسخه در حال توسعه · پرداخت آنلاین هنوز فعال نیست');
+ await fs.writeFile(file,html);
+}
 console.log('Rebuilt dependency bundles and embedded first-render styles.');
