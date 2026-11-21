@@ -2,6 +2,7 @@ import http from 'node:http';
 import {randomBytes,createHash,scrypt,timingSafeEqual} from 'node:crypto';
 import {promisify} from 'node:util';
 import fs from 'node:fs/promises';
+import {realpathSync} from 'node:fs';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {createOrderStore} from './order-store.mjs';
@@ -106,7 +107,7 @@ export function createAdminServer({credentials,loginTemplate,readAdminFile,comme
  return server;
 }
 
-if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href){
+if(process.argv[1]&&import.meta.url===pathToFileURL(realpathSync(path.resolve(process.argv[1]))).href){
  const credentials=JSON.parse(await fs.readFile(process.env.HOOYA_ADMIN_CREDENTIALS||'/etc/hooya-admin/credentials.json','utf8'));
  const loginTemplate=await fs.readFile(new URL('./admin-login.html',import.meta.url),'utf8');
  const directory=process.env.HOOYA_ADMIN_UI||'/var/lib/hooya-source/admin-current';
