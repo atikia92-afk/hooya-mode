@@ -39,6 +39,8 @@ test('private orders need a receipt secret or authenticated role; UUIDs, foreign
  assert.equal((await app.request('/api/customer/v1/track',{id:receipt.reference,phone:contact.phone})).status,404);
  assert.equal((await app.request('/api/customer/v1/track',{id:receipt.reference,token:'bad'})).status,404);
  const valid=await app.request('/api/customer/v1/track',{id:receipt.reference,token:receipt.trackingToken});assert.equal(valid.status,200);
+ assert.equal((await app.request('/api/customer/v1/track',{id:receipt.reference,token:receipt.trackingToken},{Origin:'null'})).status,200);
+ assert.equal((await app.request('/api/customer/v1/track',{id:receipt.reference},{Origin:'null'})).status,404);
  for(const field of ['privateNote','requestKey','payloadHash','seenAt'])assert.equal(field in valid.data.order,false);
  assert.match(valid.headers.get('cache-control'),/no-store/);
  assert.equal((await app.request('/api/customer/v1/track',{id:receipt.reference,token:receipt.trackingToken},{Origin:'https://evil.example'})).status,403);

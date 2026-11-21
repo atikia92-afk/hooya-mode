@@ -56,7 +56,7 @@ export function createOrders({store,secret,readCatalog,readSmsConfig,writeSmsCon
   try{
    let adminSession;
    if(admin){adminSession=authorize(req);if(!adminSession)throw fail('ورود به مدیریت لازم است.',401);if(req.method!=='GET'){if(!origin(req)&&req.headers.origin!=='null')throw fail('درخواست مجاز نیست.',403);checkCsrf(req,adminSession.csrf);}}
-   else if(req.method==='POST'&&!origin(req)&&!(req.headers.origin==='null'&&csrf(req)&&equal(req.headers['x-csrf-token'],csrf(req))))throw fail('درخواست مجاز نیست.',403);
+   else if(req.method==='POST'&&!origin(req)&&!(req.headers.origin==='null'&&(path==='/api/customer/v1/track'||csrf(req)&&equal(req.headers['x-csrf-token'],csrf(req)))))throw fail('درخواست مجاز نیست.',403);
    if(path==='/api/customer/health'&&req.method==='GET'){await store('health');json(res,200,{available:true,orders:true});return true;}
    if(path==='/api/customer/v1/catalog'&&req.method==='GET'){const catalog=await readCatalog();json(res,200,{...catalog,products:catalog.products.filter(p=>p.status==='published')});return true;}
    if(path==='/api/customer/v1/customer-details'&&req.method==='POST'){
