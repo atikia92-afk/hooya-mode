@@ -79,10 +79,12 @@ await inlineStyles(adminDirectory,{'../fonts.css':new URL('fonts.css',docs)});
 }
 for(const name of ['index.html','products.html','cart.html','checkout.html','about.html','contact.html']){
  const file=new URL(name,docs);let html=await fs.readFile(file,'utf8');
+ if(!html.includes('data-account-header'))html=html.replace('<a class="icon-button bag-button" id="bag-open"','<a class="icon-button" data-account-header href="account.html" aria-label="حساب من و پیگیری سفارش"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg></a><a class="icon-button bag-button" id="bag-open"');
  if(!html.includes('data-account-link'))html=html.replace(/(<h[23][^>]*>ارتباط با هویا<\/h[23]>)/, '$1<a href="account.html" data-account-link>حساب من و پیگیری سفارش</a>');
  if(name==='checkout.html'){
   if(!html.includes('data-account-link'))html=html.replace('<div id="billing-status"','<p class="billing-intro"><a href="account.html" data-account-link>ورود به حساب من و دیدن سفارش ها</a></p><div id="billing-status"');
   html=html.replace('tabindex="-1">اطلاعات شما ثبت شد</h2>','tabindex="-1">سفارش شما ثبت شد</h2>').replace('مشخصات و انتخاب های شما برای هماهنگی خرید به هویا رسید. هنوز پرداخت یا خریدی انجام نشده است.','سفارش شما برای بررسی موجودی و هماهنگی آماده سازی به هویا رسید. هنوز پرداختی انجام نشده است.').replace('کد پیگیری ثبت اطلاعات</span>','کد پیگیری سفارش</span>');
+  html=html.replace('>ثبت اطلاعات</button>','>ثبت سفارش</button>');
  }
  // Retain an honest development label now that order intake is operational.
  html=html.replaceAll('نسخه نمایشی · ثبت سفارش و پرداخت فعال نیست','نسخه در حال توسعه · پرداخت آنلاین هنوز فعال نیست');

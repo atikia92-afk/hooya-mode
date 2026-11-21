@@ -43,8 +43,13 @@
     const latest=C.read(products);if(JSON.stringify(latest)!==JSON.stringify(lines)){lines=latest;render();error('سبد خرید تغییر کرده است. انتخاب های خود را بررسی و دوباره ثبت کنید.');return;}
     if(!lines.length){render();return;}
     const payload=JSON.stringify({...result.data,items:lines.map(({id,size,mode,qty})=>({id,size,mode,qty})),website:$('#company-website').value});
-    if(payload!==lastPayload){requestKey=crypto.randomUUID();lastPayload=payload;}
-    submitting=true;button.disabled=true;button.textContent='در حال ثبت اطلاعات…';form.setAttribute('aria-busy','true');
+    submitting=true;button.disabled=true;button.textContent='در حال ثبت سفارش…';form.setAttribute('aria-busy','true');
+    if(payload!==lastPayload){
+      requestKey=crypto.randomUUID();lastPayload=payload;
+      // Recover the same attempt after a lost response/reload, without retaining
+      // a name, address, phone, or the form itself in browser storage.
+      try{const fingerprint=[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(payload)))].map(n=>n.toString(16).padStart(2,'0')).join(''),saved=JSON.parse(sessionStorage.getItem('hooya-checkout-attempt')||'null');if(saved?.fingerprint===fingerprint&&/^[a-f0-9-]{36}$/.test(saved.key)&&Date.now()-saved.at<86400000)requestKey=saved.key;sessionStorage.setItem('hooya-checkout-attempt',JSON.stringify({fingerprint,key:requestKey,at:Date.now()}));}catch{}
+    }
     try{
       const response=await fetch(endpoint+'/v1/customer-details',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':requestKey},body:payload,credentials:'same-origin',signal:AbortSignal.timeout(20000)});
       const data=await response.json();
@@ -52,13 +57,14 @@
       if(data.status!=='received'||typeof data.reference!=='string'||!/^[a-f0-9-]{36}$/.test(data.reference))throw Error('Invalid confirmation');
       $('#customer-reference').textContent=data.reference;$('#billing-layout').hidden=true;$('#billing-status').textContent='';$('#billing-success').hidden=false;form.reset();$('#shipping-fields').disabled=true;$('#shipping-fields').hidden=true;$('#success-title').focus();
       if(typeof data.trackingToken==='string'&&/^[A-Za-z0-9_-]{43}$/.test(data.trackingToken)){
-        const link=document.createElement('a');link.className='button';link.textContent='پیگیری سفارش و حساب من';link.href='account.html#'+new URLSearchParams({order:data.reference,key:data.trackingToken});
+        const link=document.createElement('a');link.className='outline-button';link.textContent='پیگیری سفارش و حساب من';link.href='account.html#'+new URLSearchParams({order:data.reference,key:data.trackingToken});
         const note=document.createElement('p');note.textContent='لینک پیگیری خصوصی را نزد خود نگه دارید. سفارش ثبت شده و هنوز پرداخت نشده است.';
         $('#billing-success').append(note,link);
         if(JSON.stringify(C.read(products))===JSON.stringify(lines)){C.save([]);$('#bag-count').textContent=H.number(0);}
+        try{sessionStorage.removeItem('hooya-checkout-attempt');}catch{}
       }
     }catch{error('تایید ثبت اطلاعات دریافت نشد. اطلاعات فرم حفظ شده؛ دوباره تلاش کنید. تلاش مجدد، ثبت تکراری ایجاد نمی‌کند.');}
-    finally{submitting=false;button.textContent='ثبت اطلاعات';button.disabled=!available;form.removeAttribute('aria-busy');}
+    finally{submitting=false;button.textContent='ثبت سفارش';button.disabled=!available;form.removeAttribute('aria-busy');}
   };
   try{products=H.validate(JSON.parse($('#catalog-snapshot')?.textContent||'null')).products;lines=C.read(products);render();$('#billing-status').textContent='';}catch{}
   const serviceReady=Promise.any(endpoints.map(async url=>{

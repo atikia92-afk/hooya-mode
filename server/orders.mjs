@@ -11,8 +11,8 @@ const moves={received:['reviewing','cancelled'],reviewing:['awaiting_payment','c
 const fail=(message,status=400)=>Object.assign(Error(message),{status});
 async function body(req){
  if(!/^application\/json(?:\s*;|$)/i.test(req.headers['content-type']||''))throw fail('ساختار درخواست معتبر نیست.',415);
- let value='';for await(const part of req){value+=part;if(Buffer.byteLength(value)>24000)throw fail('درخواست بیش از حد بزرگ است.',413);}
- try{return JSON.parse(value);}catch{throw fail('درخواست معتبر نیست.');}
+ const chunks=[];let size=0;for await(const part of req){size+=part.length;if(size>24000)throw fail('درخواست بیش از حد بزرگ است.',413);chunks.push(part);}
+ try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw fail('درخواست معتبر نیست.');}
 }
 export function selectItems(input,products){
  if(!Array.isArray(input)||!input.length||input.length>50)throw fail('سبد خرید معتبر نیست.',409);
@@ -35,7 +35,7 @@ export function createOrders({store,secret,readCatalog,readSmsConfig,writeSmsCon
  const tracking=order=>sign('receipt:'+order.id+':'+order.requestKey);
  const json=(res,status,data,headers={})=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store, no-transform','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','X-Robots-Tag':'noindex, nofollow',...headers});res.end(JSON.stringify(data));};
  const user=req=>{
-  const key=hash(jar(req).__Host_hooya_customer||jar(req)['__Host-hooya_customer']||''),value=sessions.get(key);
+  const key=hash(jar(req)['__Host-hooya_customer']||''),value=sessions.get(key);
   if(!value)return null;if(value.expires<now()||now()-value.lastSeen>3600000){sessions.delete(key);return null;}value.lastSeen=now();return value;
  };
  async function rate(req,scope,limit,period){
