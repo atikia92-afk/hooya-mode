@@ -113,6 +113,7 @@ export function createOrders({store,secret,readCatalog,readSmsConfig,writeSmsCon
     if(!order||!(current?.phone===order.billing.phone||equal(input.token,tracking(order))))throw fail('سفارش یافت نشد یا لینک پیگیری معتبر نیست.',404);
     json(res,200,{order:publicOrder(order)});return true;
    }
+   if(path==='/admin/api/order-counts'&&req.method==='GET'){json(res,200,await store('counts'));return true;}
    if(path==='/admin/api/orders'&&req.method==='GET'){
     const orders=await store('list');json(res,200,{orders:orders.map(({requestKey,payloadHash,...order})=>order),states,unread:orders.filter(o=>!o.seenAt).length});return true;
    }

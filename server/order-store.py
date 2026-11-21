@@ -38,6 +38,9 @@ with db:
     elif op == 'get':
         row = db.execute('SELECT body FROM orders WHERE id=?', (data['id'],)).fetchone()
         result = json.loads(row['body']) if row else None
+    elif op == 'counts':
+        rows = db.execute("SELECT json_extract(body,'$.status') AS status,COUNT(*) AS total,SUM(CASE WHEN json_extract(body,'$.seenAt') IS NULL THEN 1 ELSE 0 END) AS unread FROM orders GROUP BY json_extract(body,'$.status')").fetchall()
+        result = {'counts': {row['status']: row['total'] for row in rows}, 'unread': sum(row['unread'] for row in rows)}
     elif op == 'list':
         if data.get('phone'):
             rows = db.execute('SELECT body FROM orders WHERE phone=? ORDER BY created_at DESC LIMIT 200', (data['phone'],)).fetchall()

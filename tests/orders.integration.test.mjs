@@ -28,6 +28,7 @@ test('durable orders snapshot server prices, retry once and reject conflicting i
  const app=await setup(t),key=randomUUID(),data=payload();
  const [one,two]=await Promise.all([app.submit(data,key),app.submit(data,key)]);assert.equal(one.status,201);assert.ok([200,201].includes(two.status));assert.equal(one.data.reference,two.data.reference);assert.equal(one.data.trackingToken,two.data.trackingToken);
  assert.equal((await app.store('list')).length,1);const order=await app.store('get',{id:one.data.reference});assert.equal(order.subtotalToman,100000);assert.equal(order.items[0].unitPriceToman,100000);assert.equal(order.payment.status,'unpaid');
+ const counts=(await app.admin('order-counts')).data;assert.equal(counts.unread,1);assert.equal(counts.counts.received,1);assert.equal(JSON.stringify(counts).includes(contact.phone),false);
  const restored=createOrderStore(app.database,{python:process.env.HOOYA_TEST_PYTHON||'python3'});assert.equal((await restored('get',{id:order.id})).id,order.id);
  data.notes='اطلاعات تغییر کرده';assert.equal((await app.submit(data,key)).status,409);
 });

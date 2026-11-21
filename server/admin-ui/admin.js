@@ -239,3 +239,14 @@
   }
   boot();
 })();
+
+// Notify the owner while working on products without downloading customer data.
+(()=>{
+ async function refreshOrderBadge(){
+  if(document.hidden)return;
+  try{const response=await fetch('/admin/api/order-counts',{cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(5000)});if(!response.ok)return;const {unread}=await response.json();if(!Number.isSafeInteger(unread))return;
+   for(const id of ['nav-orders','top-orders']){const link=document.getElementById(id);if(link)link.textContent=unread?'سفارش ها · '+new Intl.NumberFormat('fa-IR').format(unread)+' تازه':'سفارش ها';}
+  }catch{}
+ }
+ refreshOrderBadge();setInterval(refreshOrderBadge,30000);
+})();
