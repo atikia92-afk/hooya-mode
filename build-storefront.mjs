@@ -3,6 +3,19 @@ import {createHash} from 'node:crypto';
 import path from 'node:path';
 const docs=new URL('./docs/',import.meta.url);
 const adminDirectory=new URL('./server/admin-ui/',import.meta.url);
+// Shared footer markup is rendered into the HTML, with no extra network request.
+const socials=await fs.readFile(new URL('partials/social-links.html',docs),'utf8');
+const footer=(await fs.readFile(new URL('partials/footer.html',docs),'utf8')).replace('{{SOCIAL_LINKS}}',()=>socials);
+const footerScript=(await fs.readFile(new URL('footer.js',docs),'utf8')).replaceAll('\r\n','\n');
+for(const name of ['index.html','products.html','cart.html','checkout.html','about.html','contact.html','account.html']){
+ const file=new URL(name,docs);let html=await fs.readFile(file,'utf8');
+ const compact=['checkout.html','account.html'].includes(name)?'<footer class="footer-mini"><div><span>هویا · روایت هایی برای پوشیدن</span><a href="contact.html">ارتباط با هویا</a></div>'+socials+'</footer>':footer;
+ html=html.replace(/<footer\b[^>]*>[\s\S]*?<\/footer>\s*/,()=>compact.trim()+'\n');
+ if(!html.includes('data-hooya-source="footer.css"')&&!html.includes('href="footer.css"'))html=html.replace('</head>','<link rel="stylesheet" href="footer.css"></head>');
+ html=html.replace(/<script data-hooya-footer>[\s\S]*?<\/script>\s*/g,'');
+ html=html.replace('</body>',()=>'<script data-hooya-footer>'+footerScript.replace(/<\/script/gi,'<\\/script')+'</script>\n</body>');
+ await fs.writeFile(file,html);
+}
 const bundles=[
  {file:'storefront-bundle.js',sources:['catalog.js','product-motion.js','product-content.js','cart.js','storefront.js','hero-slider.js'],pages:['index.html','products.html']},
  {file:'cart-bundle.js',sources:['catalog.js','cart.js','about.js','cart-page.js'],pages:['cart.html']},
