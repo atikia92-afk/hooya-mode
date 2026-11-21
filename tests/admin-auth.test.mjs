@@ -6,7 +6,7 @@ const credentials=await passwordRecord('MahAdmin',password);
 const template='<form><input name="csrf" value="__CSRF__"><p>__ERROR__</p></form>';
 async function setup(t){
  let clock=1_000_000,reads=0;
- const server=createAdminServer({credentials,loginTemplate:template,now:()=>clock,readAdminFile:async name=>{reads++;return 'private '+name;}});
+ const server=createAdminServer({credentials,loginTemplate:template,now:()=>clock,readAdminFile:async name=>{reads++;return name==='index.html'?'private index.html <input name="csrf" value="__LOGOUT_CSRF__">':'private '+name;}});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  t.after(()=>{server.closeAllConnections();server.close();});
  const origin='http://127.0.0.1:'+server.address().port,jar=new Map();
@@ -37,7 +37,9 @@ test('correct credentials rotate a secure session; logout invalidates it on the 
  assert.equal((await app.request('/admin/logout',{method:'POST',headers:{Origin:'https://evil.example'}})).status,403);
  assert.equal((await app.request('/admin/')).status,200);
  // A second login replaces the prior session, including when its cookie was copied.
- await app.request('/admin/logout',{method:'POST',headers:{Origin:'https://hooyamode.ir'}});
+ const csrf=(await (await app.request('/admin/')).text()).match(/name="csrf" value="([^"]+)"/)[1];
+ assert.equal((await app.request('/admin/logout',{method:'POST',headers:{Origin:'null'}})).status,403);
+ await app.request('/admin/logout',{method:'POST',headers:{Origin:'https://hooyamode.ir','Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({csrf})});
  app.jar.set('__Host-hooya_admin',first);assert.equal((await app.request('/admin/admin.js')).status,401);
  await app.submit(await app.form());assert.notEqual(app.jar.get('__Host-hooya_admin'),first);
 });
@@ -63,4 +65,11 @@ test('login pages cannot be cached, framed or used to expose credentials',async 
  assert.equal(response.headers.get('x-frame-options'),'DENY');assert.match(response.headers.get('content-security-policy'),/frame-ancestors 'none'/);
  const html=await response.text();assert.ok(!html.includes(password));assert.ok(!html.includes(credentials.hash));
  assert.equal((await app.request('/admin/login',{method:'POST',headers:{Origin:'https://hooyamode.ir','Content-Type':'application/json'},body:'{}'})).status,415);
+});
+
+test('an opaque browser origin still requires a valid matching form cookie and token',async t=>{
+ const app=await setup(t),csrf=await app.form();
+ assert.equal((await app.submit(csrf+'wrong',password,'null')).status,403);
+ assert.equal((await app.submit(await app.form(),password,'null')).status,303);
+ assert.equal((await app.request('/admin/')).status,200);
 });

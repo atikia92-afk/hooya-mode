@@ -10,6 +10,9 @@ const digest=value=>createHash('sha256').update(value).digest('hex');
 const equal=(a,b)=>{const x=Buffer.from(a),y=Buffer.from(b);return x.length===y.length&&timingSafeEqual(x,y);};
 const cookies=request=>Object.fromEntries((request.headers.cookie||'').split(';').map(item=>item.trim().split('=')).filter(parts=>parts.length===2));
 const cookie=(name,value,seconds)=>`${name}=${value}; Path=/; Max-Age=${seconds}; Secure; HttpOnly; SameSite=Strict`;
+// Opaque browser contexts may send Origin: null. They still have to prove the
+// unpredictable form token and matching HttpOnly cookie; foreign origins fail.
+const allowedOrigin=value=>!value||value==='null'||value==='https://hooyamode.ir';
 const types={'index.html':'text/html; charset=utf-8','admin.css':'text/css; charset=utf-8','admin.js':'application/javascript; charset=utf-8'};
 
 export async function passwordRecord(username,password){
@@ -45,7 +48,7 @@ export function createAdminServer({credentials,loginTemplate,readAdminFile,now=D
    loginPage(response);return;
   }
   if(request.method==='POST'&&pathname==='/admin/login'){
-   if(request.headers.origin!=='https://hooyamode.ir'){respond(response,403,'درخواست ورود معتبر نیست.');return;}
+   if(!allowedOrigin(request.headers.origin)){respond(response,403,'درخواست ورود معتبر نیست.');return;}
    if(!/^application\/x-www-form-urlencoded(?:;|$)/i.test(request.headers['content-type']||'')){respond(response,415,'فرمت درخواست معتبر نیست.');return;}
    let body='';for await(const part of request){body+=part;if(Buffer.byteLength(body)>4096){respond(response,413,'درخواست بیش از حد بزرگ است.');return;}}
    const fields=new URLSearchParams(body),csrf=fields.get('csrf')||'',browser=cookies(request)[LOGIN]||'',key=digest(csrf);
@@ -68,24 +71,32 @@ export function createAdminServer({credentials,loginTemplate,readAdminFile,now=D
    const token=randomBytes(32).toString('base64url');
    for(const [key,value] of sessions)if(value.expires<stamp||stamp-value.lastSeen>60*60*1000)sessions.delete(key);
    while(sessions.size>=100)sessions.delete(sessions.keys().next().value);
-   sessions.set(digest(token),{expires:stamp+8*60*60*1000,lastSeen:stamp});
+   sessions.set(digest(token),{expires:stamp+8*60*60*1000,lastSeen:stamp,csrf:randomBytes(32).toString('base64url')});
    respond(response,303,'',{Location:'/admin/','Set-Cookie':[cookie(COOKIE,token,8*60*60),cookie(LOGIN,'',0)]});return;
   }
   if(pathname==='/admin/logout'){
    if(request.method!=='POST'){respond(response,405,'',{Allow:'POST'});return;}
-   if(request.headers.origin!=='https://hooyamode.ir'){respond(response,403,'درخواست خروج معتبر نیست.');return;}
-   const key=session(request);if(key)sessions.delete(key);
+   if(!allowedOrigin(request.headers.origin)){respond(response,403,'درخواست خروج معتبر نیست.');return;}
+   const key=session(request);
+   if(key){
+    let body='';for await(const part of request){body+=part;if(Buffer.byteLength(body)>4096){respond(response,413,'درخواست بیش از حد بزرگ است.');return;}}
+    if(!equal(new URLSearchParams(body).get('csrf')||'',sessions.get(key).csrf)){respond(response,403,'درخواست خروج معتبر نیست.');return;}
+    sessions.delete(key);
+   }
    respond(response,303,'',{Location:'/admin/login','Set-Cookie':cookie(COOKIE,'',0)});return;
   }
   if(request.method!=='GET'&&request.method!=='HEAD'){respond(response,405,'',{Allow:'GET, HEAD'});return;}
   const file=pathname==='/admin/'||pathname==='/admin/index.html'?'index.html':pathname==='/admin/admin.js'?'admin.js':pathname==='/admin/admin.css'?'admin.css':null;
   if(!file){respond(response,404,'پیدا نشد.');return;}
-  if(!session(request)){
+  const key=session(request);
+  if(!key){
    if(file==='index.html')respond(response,303,'',{Location:'/admin/login'});
    else respond(response,401,'دسترسی نیاز به ورود دارد.');
    return;
   }
-  respond(response,200,request.method==='HEAD'?'':await readAdminFile(file),{'Content-Type':types[file]});
+  let body=request.method==='HEAD'?'':await readAdminFile(file);
+  if(file==='index.html')body=body.toString().replaceAll('__LOGOUT_CSRF__',sessions.get(key).csrf);
+  respond(response,200,body,{'Content-Type':types[file]});
  };
  const server=http.createServer({maxHeaderSize:8192},(request,response)=>handler(request,response).catch(()=>{if(!response.headersSent)respond(response,503,'سرویس ورود موقتا در دسترس نیست.');else response.end();}));
  server.requestTimeout=15000;server.headersTimeout=10000;server.keepAliveTimeout=5000;
