@@ -3,13 +3,21 @@
   const H = window.Hooya, $ = s => document.querySelector(s), esc = H.escape, num = H.number;
   const STORAGE = 'hooya-catalog-workspace-v1';
   const API = 'https://api.github.com/repos/atikia92-afk/hooya-mode/contents/docs/products.json';
-  let catalog, baseline, statusFilter = 'all', inventoryOnly = false, view = 'table', selected = new Set(), toastTimer;
+  let catalog, baseline, websiteCatalog, deploymentPending=false, statusFilter = 'all', inventoryOnly = false, view = 'table', selected = new Set(), toastTimer;
   let editingId = null, editingImage = '', editingImages = [], editorSnapshot = '', uploading = false, publishing = false, publishedMessage = '';
   const clone = value => JSON.parse(JSON.stringify(value));
   const icon = name => `<svg aria-hidden="true"><use href="#i-${name}"/></svg>`;
   const lowStock = p => p.status !== 'archived' && (p.stock === null || p.stock < 3);
   const price = p => p.price === null ? '<span class="unset">تعیین نشده</span>' : `${num(p.price)} <small>تومان</small>`;
-  const badge = p => `<span class="badge ${esc(p.status)}"><i class="dot"></i>${H.statuses[p.status]}</span>`;
+  const sameProducts=(a,b)=>!!a&&!!b&&a.products.length===b.products.length&&a.products.every(p=>JSON.stringify(p)===JSON.stringify(b.products.find(x=>x.id===p.id)));
+  function badge(p){
+    const live=(websiteCatalog||baseline)?.products.find(x=>x.id===p.id),base=baseline?.products.find(x=>x.id===p.id);
+    const local=JSON.stringify(p)!==JSON.stringify(base);
+    let label=H.statuses[p.status],style=p.status;
+    if(p.status==='published'&&live?.status!=='published'){label=local?'آماده انتشار':'در حال انتشار';style='draft';}
+    else if(local)label+=' · تغییرات ارسال نشده';
+    return `<span class="badge ${esc(style)}"><i class="dot"></i>${esc(label)}</span>`;
+  }
   function formError(message) {
     const error=$('#form-error');error.textContent=message;error.scrollIntoView?.({block:'center',behavior:'smooth'});error.focus?.({preventScroll:true});
   }
@@ -46,10 +54,10 @@
   function render() {
     if (!catalog) return;
     const all = catalog.products, list = filtered(), pending = changes().length;
-    $('#stat-total').textContent = num(all.length); $('#stat-published').textContent = num(all.filter(p=>p.status==='published').length);
+    $('#stat-total').textContent = num(all.length); $('#stat-published').textContent = num((websiteCatalog||baseline).products.filter(p=>p.status==='published').length);
     $('#stat-drafts').textContent = num(all.filter(p=>p.status==='draft').length); $('#stat-stock').textContent = num(all.filter(lowStock).length);
     $('#nav-count').textContent = num(all.length); $('#catalog-count').textContent = num(all.length)+' محصول'; $('#tab-total').textContent = num(all.length);
-    $('#sync-title').textContent = pending ? num(pending)+' محصول با تغییرهای منتشرنشده' : publishedMessage ? 'تغییرها به سایت ارسال شد' : 'کاتالوگ شما به‌روز است';
+    $('#sync-title').textContent = pending ? num(pending)+' محصول با تغییرهای منتشرنشده' : deploymentPending ? 'در انتظار نمایش تغییرها روی سایت' : publishedMessage ? 'انتشار در سایت تایید شد' : 'کاتالوگ شما به‌روز است';
     $('#sync-copy').textContent = pending ? 'تغییرها در فضای کار ذخیره شده‌اند. برای به‌روزرسانی ویترین، آن‌ها را منتشر کنید.' : publishedMessage || 'می‌توانید محصول جدید اضافه کنید یا جزئیات مجموعه را ویرایش کنید.';
     $('#open-publish').disabled = !pending; $('#dirty-count').hidden = !pending; $('#dirty-count').textContent = num(pending);
     $('#catalog-title').childNodes[0].textContent = inventoryOnly ? 'بررسی موجودی ' : 'کاتالوگ محصولات ';
@@ -105,6 +113,7 @@
     const p=readEditor(); $('#preview-name').textContent=p.name||'نام محصول شما'; $('#preview-type').textContent=p.type||'جنس و هنر دوخت';
     $('#stock').value=p.stock??'';
     $('#preview-price').textContent=p.price===null?'قیمت تعیین نشده':num(p.price)+' تومان';
+    $('#save-product').innerHTML=(p.status==='published'?'ذخیره و ادامه انتشار':'ذخیره محصول')+' '+icon('check');
     $('#editor-photo').innerHTML=H.photo({...p,name:p.name||'پیش‌نمایش محصول'});
   }
   function openEditor(id) {
@@ -154,6 +163,7 @@
       const next=clone(catalog), index=next.products.findIndex(x=>x.id===p.id);
       if(index<0)next.products.unshift(p);else next.products[index]=p;
       H.validate(next); catalog=next; publishedMessage=''; const persisted=saveLocal(); render(); $('#editor').close(); toast(persisted?'محصول ذخیره شد. برای به‌روزرسانی سایت، تغییرها را منتشر کنید.':'ذخیره در مرورگر ممکن نشد. پیش از بستن این صفحه نسخه پشتیبان دریافت کنید.');
+      if(p.status==='published')$('#open-publish').onclick();
     } catch(error) { formError(error.message); }
   };
   function appendImageUrl(){
@@ -207,8 +217,8 @@
     const edit=e.target.closest('[data-edit]'); if(edit)openEditor(edit.dataset.edit);
     const close=e.target.closest('[data-close]'); if(close){ const id=close.dataset.close; if(id==='editor')await closeEditor();else if(!publishing){$('#'+id).close();$('#github-token').value='';} }
     const bulk=e.target.closest('[data-bulk]');
-    if(bulk && !publishing){ const state=bulk.dataset.bulk; if(!await ask('تغییر وضعیت محصولات',`وضعیت ${num(selected.size)} محصول به «${H.statuses[state]}» تغییر کند؟`,'ذخیره وضعیت'))return;
-      catalog.products.forEach(p=>{if(selected.has(p.id)){p.status=state;p.updatedAt=new Date().toISOString();}}); selected.clear(); const persisted=saveLocal(); render(); toast(persisted?'وضعیت محصولات ذخیره شد. تغییرها هنوز منتشر نشده‌اند.':'ذخیره در مرورگر ممکن نشد. پیش از بستن صفحه نسخه پشتیبان بگیرید.'); }
+    if(bulk && !publishing){ const state=bulk.dataset.bulk; if(!await ask('تغییر وضعیت محصولات',`وضعیت ${num(selected.size)} محصول به «${state==='published'?'آماده انتشار':H.statuses[state]}» تغییر کند؟`,'ذخیره وضعیت'))return;
+      catalog.products.forEach(p=>{if(selected.has(p.id)){p.status=state;p.updatedAt=new Date().toISOString();}}); selected.clear(); const persisted=saveLocal(); render(); toast(persisted?'وضعیت محصولات ذخیره شد. تغییرها هنوز منتشر نشده‌اند.':'ذخیره در مرورگر ممکن نشد. پیش از بستن صفحه نسخه پشتیبان بگیرید.');if(state==='published')$('#open-publish').onclick(); }
   });
   document.addEventListener('change', e=>{ if(e.target.matches('[data-select]')){ if(e.target.checked)selected.add(e.target.dataset.select);else selected.delete(e.target.dataset.select); render(); } });
   $('#editor').addEventListener('cancel',e=>{e.preventDefault();closeEditor();});
@@ -234,7 +244,7 @@
     } catch(error){toast(error.message);} finally{$('#import-file').value='';}
   };
   $('#open-publish').onclick=()=>{
-    $('#publish-summary').innerHTML=`<div class="change-list">${changes().map(c=>`<div><strong>${esc(c.product.name)}</strong><span>${esc(c.label)} · ${H.statuses[c.product.status]}</span></div>`).join('')}</div>`;
+    $('#publish-summary').innerHTML=`<div class="change-list">${changes().map(c=>`<div><strong>${esc(c.product.name)}</strong><span>${esc(c.label)} · ${c.product.status==='published'?'نمایش در سایت':H.statuses[c.product.status]}</span></div>`).join('')}</div>`;
     $('#publish-error').textContent='';$('#github-token').value='';$('#publish-dialog').showModal();
   };
   const encode = value => { const bytes=new TextEncoder().encode(value); let binary='';for(const byte of bytes)binary+=String.fromCharCode(byte);return btoa(binary); };
@@ -243,6 +253,14 @@
     const response=await fetch(API+(method==='GET'?'?ref=main&t='+Date.now():''),{method,cache:'no-store',headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+token,'Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'},...(body?{body:JSON.stringify(body)}:{})});
     if(!response.ok){const code=response.status;throw Error(code===401?'کلید دسترسی معتبر نیست.':code===403?'دسترسی نوشتن برای این مخزن وجود ندارد یا محدودیت GitHub فعال است.':code===409?'محصولات هم‌زمان در جای دیگری تغییر کرده‌اند. دوباره کاتالوگ را دریافت کنید.':code===404?'مخزن یا فایل در دسترس این کلید نیست. دسترسی مخزن hooya-mode را بررسی کنید.':`ارسال به GitHub انجام نشد (کد ${code}). تغییرهای محلی محفوظ‌اند.`);}
     return response.json();
+  }
+  async function confirmWebsiteVersion(expected,attempt=0){
+    try{
+      const response=await fetch('../products.json?v='+encodeURIComponent(expected),{cache:'no-store',signal:AbortSignal.timeout(5000)});
+      if(response.ok){const live=H.validate(await response.json());if(live.version===expected){websiteCatalog=live;deploymentPending=false;publishedMessage='انتشار این تغییرها در سایت تایید شد.';render();toast('انتشار در سایت تایید شد.');return;}}
+    }catch{}
+    if(attempt<29)setTimeout(()=>confirmWebsiteVersion(expected,attempt+1),3000);
+    else{publishedMessage='ارسال انجام شده، اما انتشار در سایت هنوز تایید نشده است. کمی بعد صفحه را دوباره باز کنید.';render();}
   }
   $('#publish-form').onsubmit=async e=>{
     e.preventDefault();if(publishing)return;publishing=true;$('#publish-submit').disabled=true;$('#publish-error').textContent='';
@@ -255,7 +273,7 @@
       if(JSON.stringify(current)!==JSON.stringify(baseline))throw Error('کاتالوگ سایت از زمان شروع کار تغییر کرده است. یک پشتیبان بگیرید و با بازکردن داشبورد در مرورگر دیگر، نسخه جدید را بررسی کنید. برای حفظ تغییرها، ارسال متوقف شد.');
       const next=clone(catalog);next.version=new Date().toISOString();
       await github(token,'PUT',{message:'Update Hooya product catalog from dashboard',content:encode(JSON.stringify(next,null,2)+'\n'),sha:remote.sha,branch:'main'});
-      catalog=next;baseline=clone(next);saveLocal();publishedMessage='نمایش نسخه جدید در ویترین ممکن است چند دقیقه طول بکشد.';render();$('#publish-dialog').close();toast('تغییرها به مخزن سایت ارسال شد. نسخه جدید به‌زودی در ویترین نمایش داده می‌شود.');
+      catalog=next;baseline=clone(next);saveLocal();deploymentPending=true;publishedMessage='تغییرها ارسال شدند؛ نمایش آن‌ها روی سایت در حال بررسی است.';render();$('#publish-dialog').close();toast('تغییرها ارسال شدند. منتظر تایید انتشار روی سایت باشید.');confirmWebsiteVersion(next.version);
     }catch(error){$('#publish-error').textContent=error.message||'ارتباط برقرار نشد. اتصال اینترنت را بررسی کنید.';}
     finally{publishing=false;$('#publish-submit').disabled=false;}
   };
@@ -266,20 +284,26 @@
       let saved;try{const raw=localStorage.getItem(STORAGE);if(raw){saved=JSON.parse(raw);H.validate(saved.catalog);H.validate(saved.baseline);}}catch{saved=null;}
       let snapshot;try{snapshot=H.validate(JSON.parse($('#admin-catalog-snapshot')?.textContent||'null'));}catch{}
       const restore=live=>{
-        if(saved && JSON.stringify(saved.catalog.products)!==JSON.stringify(saved.baseline.products)){
+        websiteCatalog=live;
+        if(saved&&live&&sameProducts(saved.catalog,live)){catalog=clone(live);baseline=clone(live);saveLocal();}
+        else if(saved && !sameProducts(saved.catalog,saved.baseline)){
           catalog=saved.catalog;baseline=saved.baseline;
           if(live&&JSON.stringify(live)!==JSON.stringify(baseline))toast('تغییرهای محلی بازیابی شدند. کاتالوگ سایت نیز تغییر کرده؛ پیش از انتشار نسخه‌ها را بررسی کنید.');
         }else if(saved && (!live || new Date(saved.baseline.version)>new Date(live.version))){catalog=saved.catalog;baseline=saved.baseline;}
         else{catalog=clone(live);baseline=clone(live);}
+        deploymentPending=!!live&&!sameProducts(baseline,live)&&new Date(baseline.version)>new Date(live.version);
         render();
       };
       if(snapshot||saved)restore(snapshot);
       try{
         const response=await fetch('../products.json',{cache:'no-store',signal:AbortSignal.timeout(4000)});if(!response.ok)throw Error();const live=H.validate(await response.json());
+        websiteCatalog=live;
         if(!catalog)restore(live);
-        else if(changes().length){if(JSON.stringify(live)!==JSON.stringify(baseline))toast('کاتالوگ سایت تغییر کرده است. تغییرهای محلی شما حفظ شده‌اند.');}
+        else if(sameProducts(catalog,live)){catalog=clone(live);baseline=clone(live);deploymentPending=false;saveLocal();render();}
+        else if(changes().length){if(JSON.stringify(live)!==JSON.stringify(baseline))toast('کاتالوگ سایت تغییر کرده است. تغییرهای محلی شما حفظ شده‌اند.');render();}
         else if(new Date(live.version)>=new Date(baseline.version)){catalog=clone(live);baseline=clone(live);render();}
       }catch{if(!catalog)throw Error('دریافت محصولات ممکن نشد. اتصال اینترنت را بررسی و صفحه را دوباره بارگذاری کنید.');}
+      if(deploymentPending)confirmWebsiteVersion(baseline.version);
     }catch(error){$('#sync-title').textContent='دریافت کاتالوگ انجام نشد';$('#sync-copy').textContent=error.message;$('#products-region').innerHTML='<div class="error-state"><h3>ارتباط با کاتالوگ برقرار نشد</h3><p>صفحه را دوباره بارگذاری کنید. تغییرهای ذخیره‌شده شما در مرورگر محفوظ‌اند.</p><button class="button secondary" onclick="location.reload()">تلاش دوباره</button></div>';}
   }
   boot();
