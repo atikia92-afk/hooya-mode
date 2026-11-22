@@ -14,6 +14,13 @@
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const normalize = value => String(value).replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed\u200c]/g,'').toLowerCase();
   const number = value => new Intl.NumberFormat('fa-IR').format(value);
+  function nextSku(products) {
+    const used = new Set(products.map(p=>normalize(p.sku||'').trim()));
+    const highest = products.reduce((max,p)=>{const match=/^HYA-(\d+)$/i.exec(String(p.sku||'').trim());return match?Math.max(max,Number(match[1])):max;},0);
+    let sequence=Number.isSafeInteger(highest)&&highest<Number.MAX_SAFE_INTEGER?highest+1:1;
+    while(used.has(normalize('HYA-'+String(sequence).padStart(3,'0'))))sequence++;
+    return 'HYA-'+String(sequence).padStart(3,'0');
+  }
   const localImage = value => typeof value === 'string' && /^assets\/products\/[a-z0-9-]+\/[a-z0-9-]+\.(jpg|jpeg|png|webp)$/i.test(value);
   const safeImage = value => typeof value === 'string' && (value === '' || localImage(value) || /^https:\/\/[^\s<>"']+$/i.test(value) || /^data:image\/(jpeg|png|webp);base64,[a-z0-9+/=]+$/i.test(value));
   const scriptUrl = typeof document === 'undefined' ? '' : document.currentScript?.src || '';
@@ -81,7 +88,7 @@
     const full=imageUrl(photoSource)+(instant?'?v='+preview.version:'');
     return photoSource && safeImage(photoSource) ? `<img class="product-photo custom-photo ${extra}" src="${escape(instant?preview.data:full)}"${instant?' data-full-src="'+escape(full)+'"':''} alt="${escape(p.name)}" loading="lazy">` : `<div class="product-photo photo-${p.photo} ${extra}" role="img" aria-label="${escape(p.name)}"></div>`;
   }
-  window.Hooya = {sizeLabels,sizeLabel,detailFields,contentOf,latest,kinds, stories, collections, collectionOf, statuses, escape, normalize, number, safeImage, imageUrl, images, validate,loadCatalog, photo};
+  window.Hooya = {nextSku,sizeLabels,sizeLabel,detailFields,contentOf,latest,kinds, stories, collections, collectionOf, statuses, escape, normalize, number, safeImage, imageUrl, images, validate,loadCatalog, photo};
 })();
 
 ;

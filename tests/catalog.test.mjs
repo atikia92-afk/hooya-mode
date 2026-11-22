@@ -49,12 +49,13 @@ test('the private inline administrator bundle resolves product images at the sto
 });
 
 // Exercise the real publishing controller against an in-memory DOM and GitHub transport.
-async function setup(remote=clone(seed),putStatus=200,editId=null){
+async function setup(remote=clone(seed),putStatus=200,editId=null,options={}){
   const elements=new Map(),store=new Map(),calls=[],handlers=new Map();
-  function element(key){if(!elements.has(key))elements.set(key,{value:'',textContent:'',innerHTML:'',hidden:false,disabled:false,open:false,childNodes:[{textContent:''}],classList:{add(){},remove(){},toggle(){}},reset(){},addEventListener(){},setAttribute(){},showModal(){this.open=true;},close(){this.open=false;}});return elements.get(key);}
+  let encodedImages=0;
+  function element(key){if(!elements.has(key))elements.set(key,{value:'',textContent:'',innerHTML:'',hidden:false,disabled:false,open:false,listeners:new Map(),childNodes:[{textContent:''}],classList:{add(){},remove(){},toggle(){}},reset(){},addEventListener(event,handler){this.listeners.set(event,handler);},setAttribute(){},showModal(){this.open=true;},close(){this.open=false;}});return elements.get(key);}
   const formValues={name:'A new garment',sku:'QA-NEW',kind:'vest',type:'Linen',story:'myth',tag:'Story',description:'A garment',price:'1200000',stock:'4','stock-M':'4',madeToOrder:'on',productionDays:'12',dispatchDays:'2',colors:'#aabbcc',status:'draft'};
   element('#sample-photo').value='0';element('#kind-filter').value='all';element('#collection-filter').value='all';element('#collection').value='mythical-creatures';element('#sort').value='newest';
-  const context={window:{addEventListener(){}},document:{querySelector:element,querySelectorAll:()=>[],addEventListener(event,handler){handlers.set(event,handler);}},AbortSignal,TextEncoder,TextDecoder,Intl,Date,URL,Blob,crypto:{randomUUID:()=> 'test-id'},setTimeout:()=>0,setInterval:()=>0,clearTimeout(){},btoa:x=>Buffer.from(x,'binary').toString('base64'),atob:x=>Buffer.from(x,'base64').toString('binary'),FormData:class{get(k){if(k==='collection')return element('#collection').value;if(k.startsWith('fit-')&&editId)return seed.products.find(p=>p.id===editId).details?.sizeNotes[k.slice(4)]||'';return formValues[k]??elements.get('#'+k)?.value??'';}getAll(){return editId?seed.products.find(p=>p.id===editId).sizes:['M'];}},localStorage:{getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v)},fetch:async(url,options={})=>{
+  const context={window:{addEventListener(){}},document:{querySelector:element,querySelectorAll:()=>[],createElement(tag){assert.equal(tag,'canvas');return {getContext:()=>({fillRect(){},drawImage(){}}),toDataURL:()=> 'data:image/webp;base64,'+Buffer.from('encoded-image-'+ ++encodedImages).toString('base64')};},addEventListener(event,handler){handlers.set(event,handler);}},Image:class{width=100;height=100;async decode(){}},AbortSignal,TextEncoder,TextDecoder,Intl,Date,URL,Blob,crypto:{randomUUID:()=> 'test-id'},setTimeout:()=>0,setInterval:()=>0,clearTimeout(){},btoa:x=>Buffer.from(x,'binary').toString('base64'),atob:x=>Buffer.from(x,'base64').toString('binary'),FormData:class{get(k){if(k==='collection')return element('#collection').value;if(k.startsWith('fit-')&&editId)return seed.products.find(p=>p.id===editId).details?.sizeNotes[k.slice(4)]||'';return formValues[k]??elements.get('#'+k)?.value??'';}getAll(){return editId?seed.products.find(p=>p.id===editId).sizes:['M'];}},localStorage:{getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v)},fetch:async(url,options={})=>{
     calls.push({url,options});if(url==='../products.json')return {ok:true,json:async()=>clone(seed)};
     if(options.method==='PUT')return{ok:putStatus===200,status:putStatus,json:async()=>({commit:{sha:'commit'}})};
     return{ok:true,json:async()=>({sha:'baseline-sha',encoding:'base64',content:Buffer.from(JSON.stringify(remote)).toString('base64')})};
@@ -62,9 +63,39 @@ async function setup(remote=clone(seed),putStatus=200,editId=null){
   vm.createContext(context);vm.runInContext(source,context);vm.runInContext(adminSource,context);
   await new Promise(resolve=>setImmediate(resolve));
   if(editId)await handlers.get('click')({target:{closest:selector=>selector==='[data-edit]'?{dataset:{edit:editId}}:null}});
-  element('#product-form').onsubmit({preventDefault(){}});
-  return {element,store,calls,publish:async()=>{element('#github-token').value='fake-session-token';await element('#publish-form').onsubmit({preventDefault(){}});}};
+  const save=()=>element('#product-form').onsubmit({preventDefault(){}});
+  if(options.submit!==false)save();
+  const galleryClick=(selector,dataset)=>element('#gallery-preview').listeners.get('click')({target:{closest:s=>s===selector?{dataset}:null}});
+  return {element,store,calls,formValues,save,upload:async files=>{element('#image-file').files=files;await element('#image-file').onchange();},cover:index=>galleryClick('[data-gallery-cover]',{galleryCover:index}),remove:index=>galleryClick('[data-gallery-remove]',{galleryRemove:index}),publish:async()=>{element('#github-token').value='fake-session-token';await element('#publish-form').onsubmit({preventDefault(){}});}};
 }
+
+test('automatic product codes advance beyond every saved or archived code',()=>{
+ const H=contract();assert.equal(H.nextSku([]),'HYA-001');assert.equal(H.nextSku(seed.products),'HYA-008');
+ assert.equal(H.nextSku([{sku:'HYA-999',status:'archived'},{sku:'hya-1001'},{sku:'custom'},{sku:''}]),'HYA-1002');
+});
+test('saving a new product replaces a repeated or empty manual code; editing preserves its identity',async()=>{
+ const s=await setup(clone(seed),200,null,{submit:false});s.formValues.sku='HYA-005';s.save();
+ assert.equal(JSON.parse([...s.store.values()][0]).catalog.products[0].sku,'HYA-008');
+ const original=seed.products[0],edited=await setup(clone(seed),200,original.id);
+ assert.equal(JSON.parse([...edited.store.values()][0]).catalog.products.find(p=>p.id===original.id).sku,original.sku);
+});
+test('multiple uploaded photographs append, can become the cover and can be removed individually',async()=>{
+ const original=seed.products[0],s=await setup(clone(seed),200,original.id,{submit:false});
+ await s.upload([new File(['first'],'first.png',{type:'image/png'}),new File(['second'],'second.jpg',{type:'image/jpeg'})]);
+ assert.equal(s.element('#form-error').textContent,'');s.cover(4);s.remove(2);s.save();
+ const p=JSON.parse([...s.store.values()][0]).catalog.products.find(p=>p.id===original.id);
+ assert.equal(p.images.length,4);assert.equal(p.image,p.images[0]);assert.match(p.image,/^data:image\/webp/);assert.equal(p.images[1],original.images[0]);assert.equal(p.thumbnail,undefined);
+ assert.equal(s.element('#save-product').disabled,false);assert.equal(s.element('#image-file').value,'');
+});
+test('a failed image batch preserves the previous gallery and restores the save button',async()=>{
+ const p=seed.products[0],s=await setup(clone(seed),200,p.id,{submit:false});
+ await s.upload([new File(['first'],'first.png',{type:'image/png'}),new File(['invalid'],'invalid.txt',{type:'text/plain'})]);
+ assert.match(s.element('#form-error').textContent,/invalid.txt/);assert.equal(s.element('#save-product').disabled,false);assert.equal(s.element('#image-file').disabled,false);
+ s.save();const saved=JSON.parse([...s.store.values()][0]).catalog.products.find(x=>x.id===p.id);assert.deepEqual(saved.images,p.images);
+});
+test('an empty required name fails visibly without discarding the form',async()=>{
+ const s=await setup(clone(seed),200,null,{submit:false});s.formValues.name='';s.save();assert.match(s.element('#form-error').textContent,/نام/);assert.equal(s.store.size,0);
+});
 test('publishes UTF-8 catalog with SHA guard and never persists the token',async()=>{
   const s=await setup();await s.publish();const put=s.calls.find(c=>c.options.method==='PUT');assert.ok(put);
   const body=JSON.parse(put.options.body);assert.equal(body.sha,'baseline-sha');assert.equal(body.branch,'main');

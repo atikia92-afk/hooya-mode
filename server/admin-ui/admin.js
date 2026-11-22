@@ -10,6 +10,19 @@
   const lowStock = p => p.status !== 'archived' && (p.stock === null || p.stock < 3);
   const price = p => p.price === null ? '<span class="unset">تعیین نشده</span>' : `${num(p.price)} <small>تومان</small>`;
   const badge = p => `<span class="badge ${esc(p.status)}"><i class="dot"></i>${H.statuses[p.status]}</span>`;
+  function formError(message) {
+    const error=$('#form-error');error.textContent=message;error.scrollIntoView?.({block:'center',behavior:'smooth'});error.focus?.({preventScroll:true});
+  }
+  function setGallery(images) {
+    editingImages=[...new Set(images)];editingImage=editingImages[0]||'';
+    renderGallery();updatePreview();
+  }
+  function renderGallery() {
+    $('#gallery-preview').innerHTML=editingImages.length?`<ol class="gallery-list" aria-label="تصاویر محصول">${editingImages.map((src,index)=>`<li><button type="button" class="gallery-photo ${index===0?'is-cover':''}" data-gallery-cover="${index}" aria-label="${index===0?'عکس اصلی':'انتخاب عکس '+num(index+1)+' به عنوان عکس اصلی'}" ${uploading?'disabled':''}><img src="${esc(H.imageUrl(src))}" alt="عکس ${num(index+1)} محصول"><span>${index===0?'عکس اصلی':'اصلی شود'}</span></button><button type="button" class="gallery-remove" data-gallery-remove="${index}" aria-label="حذف عکس ${num(index+1)}" ${uploading?'disabled':''}>حذف</button></li>`).join('')}</ol>`:'<p class="gallery-empty">می‌توانید تا ۱۲ عکس برای این محصول اضافه کنید.</p>';
+    $('#gallery-count').textContent=num(editingImages.length)+' از ۱۲ عکس';
+    $('#remove-image').hidden=!editingImages.length;
+    $('.sample-label').hidden=!!editingImages.length;
+  }
   const changes = () => {
     if (!catalog || !baseline) return [];
     const before = new Map(baseline.products.map(p => [p.id,p]));
@@ -75,10 +88,10 @@
     const sizes=f.getAll('size'), sizeStock=Object.fromEntries(sizes.map(s=>{const value=f.get('stock-'+s);return [s,value===null||value===''?null:Number(value)];}));
     const days=key=>{const value=f.get(key);return value===null||value===''?null:Number(value);};
     return {
-      id:editingId || 'product-'+crypto.randomUUID(), sku:String(f.get('sku')).trim(), name:String(f.get('name')).trim(),
+      id:editingId || 'product-'+crypto.randomUUID(), sku:existing?.sku||String(f.get('sku')||'').trim(), name:String(f.get('name')).trim(),
       kind:f.get('kind'), type:String(f.get('type')).trim(), story:existing?.story||'iran', collection:String(f.get('collection')||''), tag:String(f.get('tag')).trim(),
       ...(existing?.thumbnail&&editingImage===existing.image?{thumbnail:existing.thumbnail}:{}),
-      photo:Number($('#sample-photo').value), image:editingImage, images:editingImage?[editingImage,...editingImages.slice(1)]:[], colors:String(f.get('colors')).split(/[,،]/).map(s=>s.trim()).filter(Boolean),
+      photo:Number($('#sample-photo').value), image:editingImage, images:editingImages.slice(), colors:String(f.get('colors')).split(/[,،]/).map(s=>s.trim()).filter(Boolean),
       description:String(f.get('description')).trim(), price:f.get('price')===''?null:Number(f.get('price')),
       stock:Object.values(sizeStock).every(n=>n!==null)?Object.values(sizeStock).reduce((a,b)=>a+b,0):null,
       sizeStock, madeToOrder:f.get('madeToOrder')==='on', productionDays:days('productionDays'), dispatchDays:days('dispatchDays'),
@@ -98,16 +111,17 @@
     if (!catalog || publishing) return;
     const p=catalog.products.find(p=>p.id===id) || {name:'',sku:'',kind:'vest',type:'',story:'iran',collection:'',tag:'',description:'',price:null,stock:null,sizes:['M'],colors:[],status:'draft',photo:0,image:''};
     editingId=id||null; editingImage=p.image; editingImages=H.images(p).slice();
-    $('#product-form').reset(); $('#editor-title').textContent=id?'ویرایش '+p.name:'محصول جدید';
+    $('#product-form').reset(); $('#product-form').classList.remove('was-validated'); $('#editor-title').textContent=id?'ویرایش '+p.name:'محصول جدید';
     for (const field of ['name','sku','kind','type','collection','tag','description','price','stock','status']) $('#'+field).value=p[field]??'';
+    $('#sku').value=p.sku||H.nextSku(catalog.products);$('#sku').readOnly=true;
     const content=H.contentOf(p);for(const key of Object.keys(H.detailFields))$('#'+key).value=content.details[key];
     $('#embroideryHours').value=content.details.embroideryHours??'';$('#lengthCm').value=content.details.lengthCm??'';
     for(const [field,key] of [['narrativeText','text'],['narrativeQuote','quote'],['narrativeVerse','verse']])$('#'+field).value=content.narrative[key];
-    $('#colors').value=p.colors.join(', '); $('#sample-photo').value=p.photo; $('#image-url').value=p.image.startsWith('https://')?p.image:'';
+    $('#colors').value=p.colors.join(', '); $('#sample-photo').value=p.photo; $('#image-url').value='';
     document.querySelectorAll('[name=size]').forEach(i=>i.checked=p.sizes.includes(i.value));
     $('#madeToOrder').checked=!!p.madeToOrder; $('#productionDays').value=p.productionDays??''; $('#dispatchDays').value=p.dispatchDays??'';
     renderSizeStock(p.sizeStock||{});renderSizeNotes(content.details.sizeNotes);
-    $('#form-error').textContent=''; $('#image-file').value=''; updatePreview(); editorSnapshot=editorFingerprint(); $('#editor').showModal();
+    $('#form-error').textContent=''; $('#gallery-status').textContent=''; $('#image-file').value=''; renderGallery(); updatePreview(); editorSnapshot=editorFingerprint(); $('#editor').showModal();
   }
   async function closeEditor() {
     if (uploading) return toast('لطفا تا پایان آماده‌سازی تصویر صبر کنید.');
@@ -125,38 +139,69 @@
   }
   document.querySelectorAll('[name=size]').forEach(input=>input.addEventListener('change',()=>{const values=Object.fromEntries([...document.querySelectorAll('#size-stock input')].map(i=>[i.name.slice(6),i.value]));const notes=Object.fromEntries([...document.querySelectorAll('#size-notes input')].map(i=>[i.name.slice(4),i.value]));renderSizeStock(values);renderSizeNotes(notes);updatePreview();}));
   $('#product-form').onsubmit=e=>{
-    e.preventDefault(); if(uploading)return; $('#form-error').textContent='';
+    e.preventDefault(); if(uploading){formError('عکس‌ها هنوز در حال آماده سازی هستند. کمی صبر کنید.');return;} $('#form-error').textContent='';
+    $('#product-form').classList.add('was-validated');
     try {
+      if($('#product-form').checkValidity&&!$('#product-form').checkValidity()){
+        const invalid=$('#product-form').querySelector(':invalid');const details=invalid?.closest('details');if(details)details.open=true;
+        const label=invalid?.labels?.[0]?.textContent.replace(/\*/g,'').trim()||'فیلد مشخص شده';
+        formError(invalid?.validity.valueMissing?label+' را وارد کنید.':'مقدار «'+label+'» معتبر نیست. عدد و محدوده مجاز آن را بررسی کنید.');invalid?.focus();return;
+      }
+      if($('#image-url').value.trim()&&!appendImageUrl())return;
       const p=readEditor(); p.updatedAt=new Date().toISOString();p.createdAt=p.createdAt||p.updatedAt;
+      if(!editingId||!p.sku){p.sku=H.nextSku(catalog.products);$('#sku').value=p.sku;}
       if (p.sku && catalog.products.some(x=>x.id!==p.id && H.normalize(x.sku)===H.normalize(p.sku))) throw Error('این کد قبلا برای محصول دیگری ثبت شده است.');
       const next=clone(catalog), index=next.products.findIndex(x=>x.id===p.id);
       if(index<0)next.products.unshift(p);else next.products[index]=p;
       H.validate(next); catalog=next; publishedMessage=''; const persisted=saveLocal(); render(); $('#editor').close(); toast(persisted?'محصول ذخیره شد. برای به‌روزرسانی سایت، تغییرها را منتشر کنید.':'ذخیره در مرورگر ممکن نشد. پیش از بستن این صفحه نسخه پشتیبان دریافت کنید.');
-    } catch(error) { $('#form-error').textContent=error.message; }
+    } catch(error) { formError(error.message); }
   };
-  $('#image-url').addEventListener('change',()=>{
+  function appendImageUrl(){
     const value=$('#image-url').value.trim();
-    if(value && (!H.safeImage(value)||!value.startsWith('https://'))) { $('#form-error').textContent='لینک تصویر باید با https:// شروع شود.'; return; }
-    editingImage=value; $('#form-error').textContent=''; updatePreview();
+    if(!value)return true;
+    if(!H.safeImage(value)||!value.startsWith('https://')){formError('لینک تصویر باید با https:// شروع شود.');return false;}
+    if(editingImages.includes(value)){$('#image-url').value='';return true;}
+    if(editingImages.length>=12){formError('هر محصول حداکثر ۱۲ عکس دارد. ابتدا یکی از عکس‌ها را حذف کنید.');return false;}
+    $('#form-error').textContent='';setGallery([...editingImages,value]);$('#image-url').value='';return true;
+  }
+  $('#add-image-url').onclick=()=>{if(!uploading)appendImageUrl();};
+  $('#image-url').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();if(!uploading)appendImageUrl();}});
+  $('#gallery-preview').addEventListener('click',e=>{
+    if(uploading)return;
+    const remove=e.target.closest('[data-gallery-remove]'),cover=e.target.closest('[data-gallery-cover]');
+    if(remove){const index=Number(remove.dataset.galleryRemove);setGallery(editingImages.filter((_,i)=>i!==index));}
+    else if(cover){const index=Number(cover.dataset.galleryCover);if(editingImages[index])setGallery([editingImages[index],...editingImages.filter((_,i)=>i!==index)]);}
   });
-  $('#remove-image').onclick=()=>{ editingImage=''; $('#image-url').value=''; $('#image-file').value=''; updatePreview(); };
-  $('#sample-photo').onchange=()=>{ editingImage=''; $('#image-url').value=''; updatePreview(); };
+  $('#remove-image').onclick=async()=>{if(!uploading&&await ask('استفاده از تصویر نمونه؟','همه عکس‌های این ویرایش از محصول کنار گذاشته می‌شوند.','استفاده از نمونه')){setGallery([]);$('#image-url').value='';$('#image-file').value='';}};
+  $('#sample-photo').onchange=updatePreview;
+  async function encodeImage(file){
+    if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>10*1024*1024)throw Error('«'+file.name+'»: یک تصویر JPG، PNG یا WEBP کوچک‌تر از ۱۰ مگابایت انتخاب کنید.');
+    const url=URL.createObjectURL(file);
+    try{
+      const image=new Image();image.src=url;await image.decode();
+      const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
+      for(const dimension of [1000,800,640,480]){
+        const scale=Math.min(1,dimension/Math.max(image.width,image.height));canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));
+        ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0,canvas.width,canvas.height);
+        for(const quality of [.82,.68,.54]){const encoded=canvas.toDataURL('image/webp',quality);if(encoded.length<=60000)return encoded;}
+      }
+      throw Error('«'+file.name+'»: حجم تصویر هنوز زیاد است. عکس کوچک‌تری انتخاب کنید یا لینک آن را وارد کنید.');
+    }finally{URL.revokeObjectURL(url);}
+  }
   $('#image-file').onchange=async()=>{
-    const file=$('#image-file').files[0]; if(!file)return;
-    uploading=true; $('#save-product').disabled=true; $('#form-error').textContent='';
-    let url;
+    const files=Array.from($('#image-file').files||[]);if(!files.length||uploading)return;
+    uploading=true;$('#save-product').disabled=true;$('#image-file').disabled=true;$('#add-image-url').disabled=true;$('#image-url').disabled=true;$('#remove-image').disabled=true;$('#form-error').textContent='';renderGallery();
     try {
-      if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>10*1024*1024)throw Error('یک تصویر JPG، PNG یا WEBP کوچک‌تر از ۱۰ مگابایت انتخاب کنید.');
-      url=URL.createObjectURL(file); const image=new Image(); image.src=url; await image.decode();
-      const scale=Math.min(1,900/Math.max(image.width,image.height));
-      const canvas=document.createElement('canvas'); canvas.width=Math.round(image.width*scale); canvas.height=Math.round(image.height*scale);
-      const ctx=canvas.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.drawImage(image,0,0,canvas.width,canvas.height);
-      let encoded=canvas.toDataURL('image/webp',.8);
-      if(encoded.length>230000)encoded=canvas.toDataURL('image/webp',.55);
-      if(encoded.length>300000)throw Error('این تصویر جزئیات زیادی دارد. تصویر کوچک‌تری انتخاب کنید یا لینک آن را وارد کنید.');
-      editingImage=encoded; $('#image-url').value=''; updatePreview();
-    } catch(error) { $('#form-error').textContent=error.message; }
-    finally { if(url)URL.revokeObjectURL(url); uploading=false; $('#save-product').disabled=false; }
+      if(editingImages.length+files.length>12)throw Error('هر محصول حداکثر ۱۲ عکس دارد. اکنون '+num(editingImages.length)+' عکس ثبت شده است.');
+      const added=[];
+      for(const [index,file] of files.entries()){$('#gallery-status').textContent='در حال آماده سازی عکس '+num(index+1)+' از '+num(files.length)+'…';added.push(await encodeImage(file));}
+      const next=[...new Set([...editingImages,...added])];
+      const candidate=readEditor();candidate.image=next[0]||'';candidate.images=next;delete candidate.thumbnail;
+      const current=clone(catalog);current.products=current.products.filter(p=>p.id!==editingId);current.products.push(candidate);
+      if(new TextEncoder().encode(JSON.stringify(current)).length>900000)throw Error('فضای کاتالوگ برای این تعداد عکس کافی نیست. از لینک تصاویر استفاده کنید یا تعداد عکس‌ها را کاهش دهید. عکس‌های قبلی حفظ شدند.');
+      setGallery(next);$('#gallery-status').textContent=num(added.length)+' عکس آماده و به گالری اضافه شد.';
+    } catch(error) { $('#gallery-status').textContent='افزودن عکس انجام نشد؛ عکس‌های قبلی حفظ شدند.';formError(error.message); }
+    finally { uploading=false;$('#save-product').disabled=false;$('#image-file').disabled=false;$('#image-file').value='';$('#add-image-url').disabled=false;$('#image-url').disabled=false;$('#remove-image').disabled=false;renderGallery(); }
   };
   document.addEventListener('click',async e=>{
     const edit=e.target.closest('[data-edit]'); if(edit)openEditor(edit.dataset.edit);
