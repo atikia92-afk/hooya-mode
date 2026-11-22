@@ -255,9 +255,10 @@
     return response.json();
   }
   async function confirmWebsiteVersion(expected,attempt=0){
+    if(baseline.version!==expected)return;
     try{
       const response=await fetch('../products.json?v='+encodeURIComponent(expected),{cache:'no-store',signal:AbortSignal.timeout(5000)});
-      if(response.ok){const live=H.validate(await response.json());if(live.version===expected){websiteCatalog=live;deploymentPending=false;publishedMessage='انتشار این تغییرها در سایت تایید شد.';render();toast('انتشار در سایت تایید شد.');return;}}
+      if(response.ok){const live=H.validate(await response.json());if(baseline.version!==expected)return;if(live.version===expected){websiteCatalog=live;deploymentPending=false;publishedMessage='انتشار این تغییرها در سایت تایید شد.';render();toast('انتشار در سایت تایید شد.');return;}}
     }catch{}
     if(attempt<29)setTimeout(()=>confirmWebsiteVersion(expected,attempt+1),3000);
     else{publishedMessage='ارسال انجام شده، اما انتشار در سایت هنوز تایید نشده است. کمی بعد صفحه را دوباره باز کنید.';render();}
