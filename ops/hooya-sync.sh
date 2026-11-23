@@ -60,6 +60,9 @@ if [[ ! -d $state/backend-releases/$commit ]]; then
     find "$state/backend-releases/$commit" -type d -exec chmod 0755 {} +
     find "$state/backend-releases/$commit" -type f -exec chmod 0644 {} +
 fi
+# A release may already have been prepared by an older installed sync helper.
+cp "$work/docs/catalog.js" "$state/backend-releases/$commit/docs/catalog.js"
+chmod 0644 "$state/backend-releases/$commit/docs/catalog.js"
 ln -s "$state/backend-releases/$commit" "$state/.backend-next-$$"
 mv -Tf "$state/.backend-next-$$" "$state/backend-current"
 python3 - "$work/docs/release.json" "$commit" "$catalog_hash" <<'PY'
