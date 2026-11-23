@@ -64,6 +64,17 @@ test('stale edits and simultaneous submissions cannot overwrite another computer
  const responses=await Promise.all([first.post(a,a.version),second.post(b,b.version)]);assert.deepEqual(responses.map(r=>r.status).sort(),[202,409]);
  assert.ok((await fs.readdir(path.join(app.directory,'history'))).length>=1);
 });
+
+test('authenticated polling returns no body while unchanged and detects both edits and deployment completion',async t=>{
+ const app=await setup(t),device=app.device();await device.login();
+ const initial=await device.request('/admin/api/catalog'),etag=initial.headers.get('etag');assert.ok(etag);
+ const unchanged=await device.request('/admin/api/catalog',{headers:{'If-None-Match':etag}});assert.equal(unchanged.status,304);assert.equal(await unchanged.text(),'');
+ const changed=clone(seed);changed.products[0].price=12300000;const accepted=await(await device.post(changed)).json();
+ const pending=await device.request('/admin/api/catalog',{headers:{'If-None-Match':etag}});assert.equal(pending.status,200);const pendingTag=pending.headers.get('etag');assert.notEqual(pendingTag,etag);
+ app.setLive(accepted.catalog);
+ const deployed=await device.request('/admin/api/catalog',{headers:{'If-None-Match':pendingTag}});assert.equal(deployed.status,200);assert.equal((await deployed.json()).status,'live');assert.notEqual(deployed.headers.get('etag'),pendingTag);
+ const guest=app.device();assert.equal((await guest.request('/admin/api/catalog',{headers:{'If-None-Match':etag}})).status,401);
+});
 test('invalid catalogs, duplicate codes, and oversized bodies never enter the publication queue',async t=>{
  const app=await setup(t),device=app.device();await device.login();
  for(const mutate of [p=>p.stock=-1,p=>p.image='javascript:alert(1)',p=>p.sku=seed.products[1].sku]){const bad=clone(seed);mutate(bad.products[0]);assert.equal((await device.post(bad)).status,422);}

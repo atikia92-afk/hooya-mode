@@ -39,7 +39,13 @@ export function createCatalogPublisher({store,readLive,now=Date.now}){
   if(new URL(req.url,'http://localhost').pathname!=='/admin/api/catalog')return false;
   try{
    const session=getSession(req);if(!session)throw error(401,'نشست مدیریت منقضی شده است. دوباره وارد شوید.');
-   if(req.method==='GET'){json(res,200,await state(await current()));return true;}
+   if(req.method==='GET'){
+    const snapshot=await state(await current()),etag='"'+createHash('sha256').update(JSON.stringify(snapshot)).digest('hex')+'"';
+    res.setHeader('ETag',etag);
+    if(req.headers['if-none-match']===etag){res.writeHead(304,{'Cache-Control':'no-store'});res.end();}
+    else json(res,200,snapshot);
+    return true;
+   }
    if(req.method!=='POST')throw error(405,'روش درخواست معتبر نیست.');
    if(req.headers.origin&&!['https://hooyamode.ir','null'].includes(req.headers.origin))throw error(403,'مبدا درخواست معتبر نیست.');
    if(req.headers['x-csrf-token']!==session.csrf)throw error(403,'درخواست انتشار معتبر نیست. صفحه را دوباره باز کنید.');

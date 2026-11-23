@@ -5,11 +5,62 @@
   const API = '/admin/api/catalog';
   let catalog, baseline, websiteCatalog, deploymentPending=false, statusFilter = 'all', inventoryOnly = false, view = 'table', selected = new Set(), toastTimer;
   let editingId = null, editingImage = '', editingImages = [], editorSnapshot = '', uploading = false, publishing = false, publishedMessage = '';
+  let editorBaseProduct=null, conflicts=[], syncing=null, serverSynced=false, syncIssue='', lastSync='', catalogEtag='', generation=0;
   const clone = value => JSON.parse(JSON.stringify(value));
   const icon = name => `<svg aria-hidden="true"><use href="#i-${name}"/></svg>`;
   const lowStock = p => p.status !== 'archived' && (p.stock === null || p.stock < 3);
   const price = p => p.price === null ? '<span class="unset">تعیین نشده</span>' : `${num(p.price)} <small>تومان</small>`;
   const sameProducts=(a,b)=>!!a&&!!b&&a.products.length===b.products.length&&a.products.every(p=>JSON.stringify(p)===JSON.stringify(b.products.find(x=>x.id===p.id)));
+  const stable=value=>Array.isArray(value)?value.map(stable):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(k=>[k,stable(value[k])])):value;
+  const sameValue=(a,b)=>JSON.stringify(stable(a))===JSON.stringify(stable(b));
+  const sameProduct=(a,b)=>sameValue(a?Object.fromEntries(Object.entries(a).filter(([k])=>k!=='updatedAt')):null,b?Object.fromEntries(Object.entries(b).filter(([k])=>k!=='updatedAt')):null);
+  // Rebase local edits onto the manager's shared catalog. Conflicting products
+  // display the server copy; the local copy remains recoverable until reviewed.
+  function acceptServer(target,live){
+    const before=new Map((baseline?.products||[]).map(p=>[p.id,p])),local=new Map((catalog?.products||[]).map(p=>[p.id,p])),remote=new Map(target.products.map(p=>[p.id,p]));
+    const previous=new Map(conflicts.map(c=>[c.id,c])),next=[],reviews=[];
+    for(const id of new Set([...local.keys(),...remote.keys(),...previous.keys()])){
+      const base=before.get(id),mine=previous.has(id)?previous.get(id).local:local.get(id),theirs=remote.get(id);
+      let product;
+      if(previous.has(id)&&!sameProduct(mine,theirs))reviews.push({id,local:mine||null,remote:theirs||null}),product=theirs;
+      else if(sameProduct(mine,theirs)||sameProduct(mine,base))product=theirs;
+      else if(sameProduct(theirs,base))product=mine;
+      else reviews.push({id,local:mine||null,remote:theirs||null}),product=theirs;
+      if(product)next.push(clone(product));
+    }
+    // Two offline devices can assign the same automatic code to new products.
+    const codes=new Set(target.products.map(p=>H.normalize(p.sku)));
+    for(const p of next)if(!remote.has(p.id)&&!before.has(p.id)){
+      if(codes.has(H.normalize(p.sku)))p.sku=H.nextSku([...target.products,...next]);
+      codes.add(H.normalize(p.sku));
+    }
+    catalog=H.validate({...clone(target),products:sameProducts({products:next},target)?clone(target.products):next});baseline=clone(target);websiteCatalog=live;conflicts=reviews;
+    deploymentPending=live.version!==target.version;serverSynced=true;syncIssue='';lastSync=new Intl.DateTimeFormat('fa-IR',{timeStyle:'short',timeZone:'Asia/Tehran'}).format(new Date());
+    saveLocal();render();
+  }
+  const fieldLabels={name:'نام محصول',sku:'کد محصول',kind:'دسته‌بندی',type:'زیرعنوان',collection:'کالکشن',story:'روایت',tag:'کلیدواژه',description:'توضیحات',price:'قیمت (تومان)',stock:'موجودی کل',sizeStock:'موجودی هر سایز',sizes:'سایزها',colors:'رنگ‌ها',status:'وضعیت',madeToOrder:'دوخت سفارشی',productionDays:'زمان دوخت',dispatchDays:'زمان آماده‌سازی',narrative:'قصه لباس',details:'مشخصات لباس',text:'متن قصه',quote:'جمله برجسته',verse:'شعر',technique:'تکنیک دوخت',embroideryMaterials:'متریال گلدوزی',fabric:'پارچه',lining:'آستر',finishing:'جزئیات تکمیل',fit:'تن‌خور',sizeNotes:'راهنمای سایز',embroideryHours:'زمان هنر دست',lengthCm:'قد لباس',customization:'سفارش‌سازی',care:'نگهداری'};
+  function describe(value,key){
+    if(value==null||value==='')return 'ثبت نشده';
+    if(typeof value==='boolean')return value?'بله':'خیر';
+    if(key==='status')return H.statuses[value]||value;if(key==='kind')return H.kinds[value]||value;if(key==='collection')return H.collections[value]||value;
+    if(Array.isArray(value))return value.join('، ');
+    if(typeof value==='object')return Object.entries(value).map(([k,v])=>(fieldLabels[k]||k)+': '+describe(v,k)).join(' · ');
+    return typeof value==='number'?num(value):String(value);
+  }
+  function renderConflicts(){
+    $('#sync-conflicts').hidden=!conflicts.length;
+    $('#conflict-list').innerHTML=conflicts.map(c=>{
+      const keys=[...new Set([...Object.keys(c.local||{}),...Object.keys(c.remote||{})])].filter(k=>!['id','createdAt','updatedAt','image','images','thumbnail','photo'].includes(k)&&!sameValue(c.local?.[k],c.remote?.[k]));
+      const photographs=!sameValue(c.local&&H.images(c.local),c.remote&&H.images(c.remote));
+      const copy=(p,title)=>`<div class="conflict-version"><h4>${title}</h4>${p?`<dl>${keys.map(k=>`<div><dt>${esc(fieldLabels[k]||k)}</dt><dd>${esc(describe(p[k],k))}</dd></div>`).join('')}</dl>${photographs?`<div class="conflict-photos">${H.images(p).map(src=>`<img src="${esc(H.imageUrl(src))}" alt="عکس ${esc(p.name)}">`).join('')||'<p>بدون عکس اختصاصی</p>'}</div>`:''}`:'<p>این محصول در این نسخه حذف شده است.</p>'}</div>`;
+      return `<article class="conflict-card"><h3>${esc(c.remote?.name||c.local?.name||'محصول')}</h3><div class="conflict-versions">${copy(c.remote,'نسخه فعلی سرور')}${copy(c.local,'تغییرهای این مرورگر')}</div><div class="conflict-actions"><button class="button primary" data-resolve="server" data-conflict="${esc(c.id)}">استفاده از نسخه سرور</button><button class="button secondary" data-resolve="local" data-conflict="${esc(c.id)}">حفظ تغییر من برای انتشار</button></div></article>`;
+    }).join('');
+  }
+  function resolveConflict(id,choice){
+    const review=conflicts.find(c=>c.id===id);if(!review)return;
+    const product=choice==='local'?review.local:review.remote,next=clone(catalog);next.products=next.products.filter(p=>p.id!==id);if(product)next.products.push(clone(product));
+    H.validate(next);catalog=next;conflicts=conflicts.filter(c=>c.id!==id);saveLocal();render();toast(choice==='local'?'تغییر شما برای انتشار حفظ شد.':'نسخه سرور انتخاب شد.');
+  }
   function badge(p){
     const live=(websiteCatalog||baseline)?.products.find(x=>x.id===p.id),base=baseline?.products.find(x=>x.id===p.id);
     const local=JSON.stringify(p)!==JSON.stringify(base);
@@ -41,7 +92,7 @@
   };
   function toast(message) { $('#toast').textContent = message; $('#toast').classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('#toast').classList.remove('show'), 4200); }
   function saveLocal() {
-    try { localStorage.setItem(STORAGE, JSON.stringify({catalog,baseline})); return true; }
+    try { localStorage.setItem(STORAGE, JSON.stringify({catalog,baseline,conflicts})); return true; }
     catch { toast('فضای ذخیره مرورگر کافی نیست. نسخه پشتیبان دریافت کنید و حجم تصاویر را کاهش دهید.'); return false; }
   }
   function filtered() {
@@ -59,7 +110,10 @@
     $('#nav-count').textContent = num(all.length); $('#catalog-count').textContent = num(all.length)+' محصول'; $('#tab-total').textContent = num(all.length);
     $('#sync-title').textContent = pending ? num(pending)+' محصول با تغییرهای منتشرنشده' : deploymentPending ? 'در انتظار نمایش تغییرها روی سایت' : publishedMessage ? 'انتشار در سایت تایید شد' : 'کاتالوگ شما به‌روز است';
     $('#sync-copy').textContent = pending ? 'تغییرها در فضای کار ذخیره شده‌اند. برای به‌روزرسانی ویترین، آن‌ها را منتشر کنید.' : publishedMessage || 'می‌توانید محصول جدید اضافه کنید یا جزئیات مجموعه را ویرایش کنید.';
-    $('#open-publish').disabled = !pending; $('#dirty-count').hidden = !pending; $('#dirty-count').textContent = num(pending);
+    $('#open-publish').disabled = !pending||!!conflicts.length||!serverSynced; $('#dirty-count').hidden = !pending; $('#dirty-count').textContent = num(pending);
+    renderSyncStatus();
+    if(conflicts.length){$('#sync-title').textContent=num(conflicts.length)+' محصول نیازمند بررسی دو نسخه';$('#sync-copy').textContent='نسخه سرور در فهرست نمایش داده می‌شود. تغییرهای این مرورگر در بخش زیر محفوظ است؛ پیش از انتشار، نسخه هر محصول را انتخاب کنید.';}
+    renderConflicts();if($('#publish-dialog').open)renderPublishSummary();
     $('#catalog-title').childNodes[0].textContent = inventoryOnly ? 'بررسی موجودی ' : 'کاتالوگ محصولات ';
     document.querySelectorAll('[data-status]').forEach(b => { b.setAttribute('aria-selected', String(b.dataset.status===statusFilter)); b.tabIndex = b.dataset.status===statusFilter ? 0 : -1; });
     $('#nav-inventory').classList.toggle('active', inventoryOnly);
@@ -81,6 +135,9 @@
       selectAll.onchange = () => { selected = selectAll.checked ? new Set(list.map(p=>p.id)) : new Set(); render(); };
     }
   }
+  function renderSyncStatus(){
+    $('#sync-status').textContent=syncIssue||(!serverSynced?'در حال دریافت نسخه مشترک از سرور…':'آخرین دریافت از سرور: '+lastSync+' · بررسی خودکار هر ۵ ثانیه');
+  }
   function resetFilters() { statusFilter='all'; inventoryOnly=false; $('#search').value=''; $('#kind-filter').value='all'; $('#collection-filter').value='all'; selected.clear(); render(); }
   function ask(title, copy, accept='ادامه') {
     $('#confirm-title').textContent=title; $('#confirm-copy').textContent=copy; $('#confirm-yes').textContent=accept;
@@ -92,7 +149,7 @@
     });
   }
   function readEditor() {
-    const f = new FormData($('#product-form')), existing = catalog.products.find(p=>p.id===editingId);
+    const f = new FormData($('#product-form')), existing = editorBaseProduct||catalog.products.find(p=>p.id===editingId);
     const sizes=f.getAll('size'), sizeStock=Object.fromEntries(sizes.map(s=>{const value=f.get(sizes.length===1?'stock':'stock-'+s);return [s,value===null||value===''?null:Number(value)];}));
     const days=key=>{const value=f.get(key);return value===null||value===''?null:Number(value);};
     return {
@@ -123,8 +180,9 @@
   }
   function openEditor(id) {
     if (!catalog || publishing) return;
+    if(conflicts.some(c=>c.id===id)){toast('ابتدا نسخه این محصول را در بخش بررسی ویرایش هم‌زمان انتخاب کنید.');return;}
     const p=catalog.products.find(p=>p.id===id) || {name:'',sku:'',kind:'vest',type:'',story:'iran',collection:'',tag:'',description:'',price:null,stock:null,sizes:['M'],colors:[],status:'draft',photo:0,image:''};
-    editingId=id||null; editingImage=p.image; editingImages=H.images(p).slice();
+    editingId=id||null;editorBaseProduct=id?clone(p):null; editingImage=p.image; editingImages=H.images(p).slice();
     $('#product-form').reset(); $('#product-form').classList.remove('was-validated'); $('#editor-title').textContent=id?'ویرایش '+p.name:'محصول جدید';
     for (const field of ['name','sku','kind','type','collection','tag','description','price','stock','status']) $('#'+field).value=p[field]??'';
     $('#sku').value=p.sku||H.nextSku(catalog.products);$('#sku').readOnly=true;
@@ -169,7 +227,12 @@
       if (p.sku && catalog.products.some(x=>x.id!==p.id && H.normalize(x.sku)===H.normalize(p.sku))) throw Error('این کد قبلا برای محصول دیگری ثبت شده است.');
       const next=clone(catalog), index=next.products.findIndex(x=>x.id===p.id);
       if(index<0)next.products.unshift(p);else next.products[index]=p;
-      H.validate(next); catalog=next; publishedMessage=''; const persisted=saveLocal(); render(); $('#editor').close(); toast(persisted?'محصول ذخیره شد. برای به‌روزرسانی سایت، تغییرها را منتشر کنید.':'ذخیره در مرورگر ممکن نشد. پیش از بستن این صفحه نسخه پشتیبان دریافت کنید.');
+      H.validate(next);
+      const current=catalog.products.find(x=>x.id===p.id);
+      if(editingId&&!sameProduct(current,editorBaseProduct)&&!sameProduct(current,p)){
+        conflicts=conflicts.filter(c=>c.id!==p.id);conflicts.push({id:p.id,local:p,remote:current||null});saveLocal();render();$('#editor').close();toast('این محصول هنگام ویرایش شما در سیستم دیگری تغییر کرد. هر دو نسخه برای بررسی نمایش داده شدند.');return;
+      }
+      catalog=next; publishedMessage=''; const persisted=saveLocal(); render(); $('#editor').close(); toast(persisted?'محصول ذخیره شد. برای به‌روزرسانی سایت، تغییرها را منتشر کنید.':'ذخیره در مرورگر ممکن نشد. پیش از بستن این صفحه نسخه پشتیبان دریافت کنید.');
       if(p.status==='published')$('#open-publish').onclick();
     } catch(error) { formError(error.message); }
   };
@@ -221,10 +284,11 @@
     finally { uploading=false;$('#save-product').disabled=false;$('#image-file').disabled=false;$('#image-file').value='';$('#add-image-url').disabled=false;$('#image-url').disabled=false;$('#remove-image').disabled=false;renderGallery(); }
   };
   document.addEventListener('click',async e=>{
+    const resolution=e.target.closest('[data-resolve]');if(resolution&&!publishing){resolveConflict(resolution.dataset.conflict,resolution.dataset.resolve);return;}
     const edit=e.target.closest('[data-edit]'); if(edit)openEditor(edit.dataset.edit);
     const close=e.target.closest('[data-close]'); if(close){ const id=close.dataset.close; if(id==='editor')await closeEditor();else if(!publishing)$('#'+id).close(); }
     const bulk=e.target.closest('[data-bulk]');
-    if(bulk && !publishing){ const state=bulk.dataset.bulk; if(!await ask('تغییر وضعیت محصولات',`وضعیت ${num(selected.size)} محصول به «${state==='published'?'آماده انتشار':H.statuses[state]}» تغییر کند؟`,'ذخیره وضعیت'))return;
+    if(bulk && !publishing){if(conflicts.some(c=>selected.has(c.id))){toast('ابتدا نسخه محصولات هم‌زمان ویرایش‌شده را انتخاب کنید.');return;} const state=bulk.dataset.bulk; if(!await ask('تغییر وضعیت محصولات',`وضعیت ${num(selected.size)} محصول به «${state==='published'?'آماده انتشار':H.statuses[state]}» تغییر کند؟`,'ذخیره وضعیت'))return;
       catalog.products.forEach(p=>{if(selected.has(p.id)){p.status=state;p.updatedAt=new Date().toISOString();}}); selected.clear(); const persisted=saveLocal(); render(); toast(persisted?'وضعیت محصولات ذخیره شد. تغییرها هنوز منتشر نشده‌اند.':'ذخیره در مرورگر ممکن نشد. پیش از بستن صفحه نسخه پشتیبان بگیرید.');if(state==='published')$('#open-publish').onclick(); }
   });
   document.addEventListener('change', e=>{ if(e.target.matches('[data-select]')){ if(e.target.checked)selected.add(e.target.dataset.select);else selected.delete(e.target.dataset.select); render(); } });
@@ -250,8 +314,13 @@
       catalog={...clone(imported),version:baseline.version};const persisted=saveLocal();resetFilters();toast(persisted?'فایل بازیابی شد. تغییرها را بررسی و منتشر کنید.':'ذخیره در مرورگر ممکن نشد. پیش از بستن صفحه نسخه پشتیبان بگیرید.');
     } catch(error){toast(error.message);} finally{$('#import-file').value='';}
   };
-  $('#open-publish').onclick=()=>{
+  function renderPublishSummary(){
     $('#publish-summary').innerHTML=`<div class="change-list">${changes().map(c=>`<div><strong>${esc(c.product.name)}</strong><span>${esc(c.label)} · ${c.product.status==='published'?'نمایش در سایت':H.statuses[c.product.status]}</span></div>`).join('')}</div>`;
+    $('#publish-submit').disabled=publishing||!!conflicts.length||!changes().length||!serverSynced;
+  }
+  $('#open-publish').onclick=()=>{
+    if(conflicts.length){toast('ابتدا نسخه محصولات هم‌زمان ویرایش‌شده را انتخاب کنید.');return;}
+    renderPublishSummary();
     $('#publish-error').textContent='';$('#publish-login').hidden=true;$('#publish-dialog').showModal();
   };
   async function confirmWebsiteVersion(expected,attempt=0){
@@ -266,7 +335,13 @@
   $('#publish-form').onsubmit=async e=>{
     e.preventDefault();if(publishing)return;publishing=true;$('#publish-submit').disabled=true;$('#publish-error').textContent='';
     try {
+      const previousVersion=baseline.version;
+      await refreshCatalog(true);
+      if(conflicts.length)throw Error('نسخه جدید سرور دریافت شد. ابتدا دو نسخه محصول را در داشبورد بررسی و انتخاب کنید.');
+      if(baseline.version!==previousVersion)throw Error('تغییرهای سیستم دیگر دریافت و به فهرست اضافه شد. فهرست به‌روز را بررسی و دوباره ارسال کنید.');
+      if(!changes().length)throw Error('همه تغییرها قبلا روی سرور ثبت شده‌اند.');
       H.validate(catalog);
+      generation++;
       const response=await fetch(API,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':$('#admin-csrf').value},body:JSON.stringify({catalog,baseVersion:baseline.version}),signal:AbortSignal.timeout(15000)});
       if(response.status===401||(response.redirected&&new URL(response.url,location.href).pathname==='/admin/login')){$('#publish-login').hidden=false;throw Error('نشست مدیریت منقضی شده است. دوباره وارد شوید؛ تغییرهای محلی شما محفوظ است.');}
       let result;
@@ -275,40 +350,44 @@
         if([502,503,504].includes(response.status))throw Error('سرور موقتا پاسخ نمی‌دهد. کمی بعد دوباره ارسال کنید؛ تغییرهای محلی شما محفوظ است.');
         throw Error('پاسخ معتبر از سرور دریافت نشد. دوباره ارسال کنید؛ تغییرهای محلی شما محفوظ است.');
       }
-      if(!response.ok){if(response.status===401)$('#publish-login').hidden=false;throw Error(result.error||'ارسال انجام نشد. تغییرهای محلی شما محفوظ است.');}
-      const next=H.validate(result.catalog);websiteCatalog=H.validate(result.liveCatalog);catalog=next;baseline=clone(next);saveLocal();deploymentPending=result.status!=='live';publishedMessage=deploymentPending?'تغییرها روی سرور ذخیره شدند؛ نمایش آن‌ها در سایت در حال بررسی است.':'انتشار این تغییرها در سایت تایید شد.';render();$('#publish-dialog').close();toast(deploymentPending?'تغییرها ثبت شدند. منتظر تایید انتشار روی سایت باشید.':'انتشار در سایت تایید شد.');if(deploymentPending)confirmWebsiteVersion(next.version);
+      if(!response.ok){if(response.status===401)$('#publish-login').hidden=false;if(response.status===409)await refreshCatalog(true);throw Error(result.error||'ارسال انجام نشد. تغییرهای محلی شما محفوظ است.');}
+      const next=H.validate(result.catalog);websiteCatalog=H.validate(result.liveCatalog);catalog=next;baseline=clone(next);conflicts=[];catalogEtag='';saveLocal();deploymentPending=result.status!=='live';publishedMessage=deploymentPending?'تغییرها روی سرور ذخیره شدند؛ نمایش آن‌ها در سایت در حال بررسی است.':'انتشار این تغییرها در سایت تایید شد.';render();$('#publish-dialog').close();toast(deploymentPending?'تغییرها ثبت شدند. منتظر تایید انتشار روی سایت باشید.':'انتشار در سایت تایید شد.');if(deploymentPending)confirmWebsiteVersion(next.version);
     }catch(error){$('#publish-error').textContent=error.message||'ارتباط برقرار نشد. اتصال اینترنت را بررسی کنید.';}
-    finally{publishing=false;$('#publish-submit').disabled=false;}
+    finally{publishing=false;renderPublishSummary();}
   };
   window.addEventListener('beforeunload',e=>{if(publishing || ($('#editor').open&&editorFingerprint()!==editorSnapshot)){e.preventDefault();e.returnValue='';}});
+  async function refreshCatalog(required=false){
+    if(!required&&(document.hidden||publishing))return;
+    if(syncing)return syncing;
+    const requestGeneration=generation;
+    syncing=(async()=>{
+      try{
+        const response=await fetch(API,{cache:'no-store',credentials:'same-origin',headers:catalogEtag?{'If-None-Match':catalogEtag}:{},signal:AbortSignal.timeout(5000)});
+        if(response.status===401){$('#publish-login').hidden=false;throw Error('نشست مدیریت منقضی شده است؛ دوباره وارد شوید. تغییرهای این مرورگر محفوظ است.');}
+        if(response.status===304){syncIssue='';lastSync=new Intl.DateTimeFormat('fa-IR',{timeStyle:'short',timeZone:'Asia/Tehran'}).format(new Date());renderSyncStatus();return;}
+        if(!response.ok)throw Error('دریافت نسخه مشترک انجام نشد. اتصال را بررسی و «دریافت آخرین تغییرها» را بزنید.');
+        const result=await response.json(),target=H.validate(result.catalog),live=H.validate(result.liveCatalog);
+        if(requestGeneration!==generation)return;
+        acceptServer(target,live);catalogEtag=response.headers?.get('ETag')||'';
+      }catch(error){syncIssue=error.message||'ارتباط با سرور برقرار نشد. تغییرهای محلی محفوظ است.';if(catalog)render();if(required)throw error;}
+      finally{syncing=null;}
+    })();
+    return syncing;
+  }
+  $('#refresh-catalog').onclick=()=>refreshCatalog();
   async function boot() {
     $('#today').textContent=new Intl.DateTimeFormat('fa-IR',{dateStyle:'long',timeZone:'Asia/Tehran'}).format(new Date());
     try {
-      let saved;try{const raw=localStorage.getItem(STORAGE);if(raw){saved=JSON.parse(raw);H.validate(saved.catalog);H.validate(saved.baseline);}}catch{saved=null;}
+      let saved;try{const raw=localStorage.getItem(STORAGE);if(raw){saved=JSON.parse(raw);H.validate(saved.catalog);H.validate(saved.baseline);for(const c of saved.conflicts||[])for(const p of [c.local,c.remote])if(p){H.validate({...saved.catalog,products:[p]});if(p.id!==c.id)throw Error('Invalid saved review');}}}catch{saved=null;}
       let snapshot;try{snapshot=H.validate(JSON.parse($('#admin-catalog-snapshot')?.textContent||'null'));}catch{}
-      const restore=(target,live=target,authoritative=false)=>{
-        websiteCatalog=live;
-        const working=catalog?{catalog,baseline}:saved;
-        if(working&&target&&sameProducts(working.catalog,target)){catalog=clone(target);baseline=clone(target);saveLocal();}
-        else if(working&&!sameProducts(working.catalog,working.baseline)){
-          catalog=working.catalog;baseline=working.baseline;
-          if(target&&JSON.stringify(target)!==JSON.stringify(baseline))toast('محصولات روی سیستم دیگری تغییر کرده‌اند. تغییرهای محلی شما حفظ شده‌اند؛ پیش از ارسال نسخه‌ها را بررسی کنید.');
-        }else if(working&&!authoritative&&(!target||new Date(working.baseline.version)>new Date(target.version))){catalog=working.catalog;baseline=working.baseline;}
-        else{catalog=clone(target);baseline=clone(target);}
-        deploymentPending=!!live&&!sameProducts(baseline,live)&&new Date(baseline.version)>new Date(live.version);
-        render();
-      };
-      if(snapshot||saved)restore(snapshot||saved.baseline);
-      const read=async(url,privateData=false)=>{const response=await fetch(url,{cache:'no-store',credentials:privateData?'same-origin':'omit',signal:AbortSignal.timeout(5000)});if(!response.ok)throw Error();const data=await response.json();return privateData?{catalog:H.validate(data.catalog),liveCatalog:H.validate(data.liveCatalog)}:H.validate(data);};
-      const [serverResult,liveResult]=await Promise.allSettled([read(API,true),read('../products.json')]);
-      const live=liveResult.status==='fulfilled'?liveResult.value:serverResult.status==='fulfilled'?serverResult.value.liveCatalog:websiteCatalog||snapshot;
-      if(serverResult.status==='fulfilled')restore(serverResult.value.catalog,live,true);
-      else if(live)restore(live,live);
-      else if(!catalog)throw Error('دریافت محصولات ممکن نشد. اتصال اینترنت را بررسی و صفحه را دوباره بارگذاری کنید.');
+      if(saved){catalog=saved.catalog;baseline=saved.baseline;conflicts=saved.conflicts||[];websiteCatalog=snapshot||baseline;render();}
+      else if(snapshot){catalog=clone(snapshot);baseline=clone(snapshot);websiteCatalog=snapshot;render();}
+      await refreshCatalog(true);
       if(deploymentPending)confirmWebsiteVersion(baseline.version);
-    }catch(error){$('#sync-title').textContent='دریافت کاتالوگ انجام نشد';$('#sync-copy').textContent=error.message;$('#products-region').innerHTML='<div class="error-state"><h3>ارتباط با کاتالوگ برقرار نشد</h3><p>صفحه را دوباره بارگذاری کنید. تغییرهای ذخیره‌شده شما در مرورگر محفوظ‌اند.</p><button class="button secondary" onclick="location.reload()">تلاش دوباره</button></div>';}
+    }catch(error){if(catalog){render();return;}$('#sync-title').textContent='دریافت کاتالوگ انجام نشد';$('#sync-copy').textContent=error.message;$('#products-region').innerHTML='<div class="error-state"><h3>ارتباط با کاتالوگ برقرار نشد</h3><p>صفحه را دوباره بارگذاری کنید. تغییرهای ذخیره‌شده شما در مرورگر محفوظ‌اند.</p><button class="button secondary" onclick="location.reload()">تلاش دوباره</button></div>';}
   }
   boot();
+  setInterval(()=>refreshCatalog(),5000);document.addEventListener('visibilitychange',()=>refreshCatalog());window.addEventListener('focus',()=>refreshCatalog());
 })();
 
 // Notify the owner while working on products without downloading customer data.

@@ -63,19 +63,19 @@ test('the private inline administrator bundle resolves product images at the sto
 
 // Exercise the real publishing controller against the signed-in server transport.
 async function setup(remote=clone(seed),putStatus=200,editId=null,options={}){
-  const elements=new Map(),store=new Map(options.saved?[['hooya-catalog-workspace-v1',JSON.stringify(options.saved)]]:[]),calls=[],handlers=new Map();
+  const elements=new Map(),store=new Map(options.saved?[['hooya-catalog-workspace-v1',JSON.stringify(options.saved)]]:[]),calls=[],handlers=new Map(),timers=[];
   let encodedImages=0,committedCatalog;
   function element(key){if(!elements.has(key))elements.set(key,{value:'',textContent:'',innerHTML:'',hidden:false,disabled:false,open:false,listeners:new Map(),childNodes:[{textContent:''}],classList:{add(){},remove(){},toggle(){}},reset(){},addEventListener(event,handler){this.listeners.set(event,handler);},setAttribute(){},showModal(){this.open=true;},close(){this.open=false;}});return elements.get(key);}
   const formValues={name:'A new garment',sku:'QA-NEW',kind:'vest',type:'Linen',story:'myth',tag:'Story',description:'A garment',price:'1200000',stock:'4','stock-M':'4',madeToOrder:'on',productionDays:'12',dispatchDays:'2',colors:'#aabbcc',status:'draft',...options.formValues};
   element('#sample-photo').value='0';element('#kind-filter').value='all';element('#collection-filter').value='all';element('#collection').value='mythical-creatures';element('#sort').value='newest';
   element('#admin-csrf').value='test-session-proof';
-  const context={window:{addEventListener(){}},document:{querySelector:element,querySelectorAll:()=>[],createElement(tag){assert.equal(tag,'canvas');return {getContext:()=>({fillRect(){},drawImage(){}}),toDataURL:()=> 'data:image/webp;base64,'+Buffer.from('encoded-image-'+ ++encodedImages).toString('base64')};},addEventListener(event,handler){handlers.set(event,handler);}},Image:class{width=100;height=100;async decode(){}},AbortSignal,TextEncoder,TextDecoder,Intl,Date,URL,Blob,crypto:{randomUUID:()=> 'test-id'},setTimeout:()=>0,setInterval:()=>0,clearTimeout(){},btoa:x=>Buffer.from(x,'binary').toString('base64'),atob:x=>Buffer.from(x,'base64').toString('binary'),FormData:class{get(k){if(k==='collection')return element('#collection').value;if(k.startsWith('fit-')&&editId)return seed.products.find(p=>p.id===editId).details?.sizeNotes[k.slice(4)]||'';return formValues[k]??elements.get('#'+k)?.value??'';}getAll(){if(options.sizes)return options.sizes;return editId?seed.products.find(p=>p.id===editId).sizes:['M'];}},localStorage:{getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v)},fetch:async(url,options={})=>{
-    calls.push({url,options});if(url==='../products.json'||url.startsWith('../products.json?v='))return {ok:true,json:async()=>clone(committedCatalog||seed)};
+  const context={window:{addEventListener(){}},document:{querySelector:element,querySelectorAll:()=>[],createElement(tag){assert.equal(tag,'canvas');return {getContext:()=>({fillRect(){},drawImage(){}}),toDataURL:()=> 'data:image/webp;base64,'+Buffer.from('encoded-image-'+ ++encodedImages).toString('base64')};},addEventListener(event,handler){handlers.set(event,handler);}},Image:class{width=100;height=100;async decode(){}},AbortSignal,TextEncoder,TextDecoder,Intl,Date,URL,Blob,crypto:{randomUUID:()=> 'test-id'},setTimeout:()=>0,setInterval:(handler,ms)=>{timers.push({handler,ms});return 0;},clearTimeout(){},btoa:x=>Buffer.from(x,'binary').toString('base64'),atob:x=>Buffer.from(x,'base64').toString('binary'),FormData:class{get(k){if(k==='collection')return element('#collection').value;if(k.startsWith('fit-')&&editId)return seed.products.find(p=>p.id===editId).details?.sizeNotes[k.slice(4)]||'';return formValues[k]??elements.get('#'+k)?.value??'';}getAll(){if(options.sizes)return options.sizes;return editId?seed.products.find(p=>p.id===editId).sizes:['M'];}},localStorage:{getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v)},fetch:async(url,options={})=>{
+    calls.push({url,options});if(setupOptions.transport){const custom=await setupOptions.transport(url,options);if(custom)return custom;}if(url==='../products.json'||url.startsWith('../products.json?v='))return {ok:true,json:async()=>clone(committedCatalog||seed)};
     if(url==='/admin/api/catalog'&&options.method!=='POST')return {ok:true,json:async()=>({catalog:clone(setupOptions.server||seed),liveCatalog:clone(seed)})};
     if(url==='/admin/api/catalog'&&options.method==='POST'){
       if(setupOptions.nonJson)return {ok:false,status:putStatus,json:async()=>{throw new SyntaxError('JSON.parse: unexpected character at line 1 column 1');}};
       if(putStatus>=400)return {ok:false,status:putStatus,json:async()=>({error:putStatus===401?'نشست مدیریت منقضی شده است. دوباره وارد شوید.':'ذخیره روی سرور انجام نشد.'})};
-      const body=JSON.parse(options.body);if(body.baseVersion!==remote.version)return {ok:false,status:409,json:async()=>({error:'محصولات در سیستم دیگری تغییر کرده‌اند.'})};
+      const body=JSON.parse(options.body);if(body.baseVersion!==(setupOptions.server||remote).version)return {ok:false,status:409,json:async()=>({error:'محصولات در سیستم دیگری تغییر کرده‌اند.'})};
       const accepted={...body.catalog,version:new Date(Date.parse(remote.version)+1).toISOString()};if(setupOptions.confirmWebsite)committedCatalog=clone(accepted);
       return {ok:true,status:202,json:async()=>({catalog:accepted,liveCatalog:clone(seed),status:'pending'})};
     }
@@ -88,7 +88,7 @@ async function setup(remote=clone(seed),putStatus=200,editId=null,options={}){
   const save=()=>element('#product-form').onsubmit({preventDefault(){}});
   if(options.submit!==false)save();
   const galleryClick=(selector,dataset)=>element('#gallery-preview').listeners.get('click')({target:{closest:s=>s===selector?{dataset}:null}});
-  return {element,store,calls,formValues,save,upload:async files=>{element('#image-file').files=files;await element('#image-file').onchange();},cover:index=>galleryClick('[data-gallery-cover]',{galleryCover:index}),remove:index=>galleryClick('[data-gallery-remove]',{galleryRemove:index}),publish:async()=>{await element('#publish-form').onsubmit({preventDefault(){}});}};
+  return {element,store,calls,formValues,save,timers,refresh:()=>element('#refresh-catalog').onclick(),edit:async id=>handlers.get('click')({target:{closest:s=>s==='[data-edit]'?{dataset:{edit:id}}:null}}),resolve:async(id,choice)=>handlers.get('click')({target:{closest:s=>s==='[data-resolve]'?{dataset:{conflict:id,resolve:choice}}:null}}),upload:async files=>{element('#image-file').files=files;await element('#image-file').onchange();},cover:index=>galleryClick('[data-gallery-cover]',{galleryCover:index}),remove:index=>galleryClick('[data-gallery-remove]',{galleryRemove:index}),publish:async()=>{await element('#publish-form').onsubmit({preventDefault(){}});}};
 }
 
 test('automatic product codes advance beyond every saved or archived code',()=>{
@@ -116,7 +116,7 @@ test('a failed image batch preserves the previous gallery and restores the save 
  s.save();const saved=JSON.parse([...s.store.values()][0]).catalog.products.find(x=>x.id===p.id);assert.deepEqual(saved.images,p.images);
 });
 test('an empty required name fails visibly without discarding the form',async()=>{
- const s=await setup(clone(seed),200,null,{submit:false});s.formValues.name='';s.save();assert.match(s.element('#form-error').textContent,/نام/);assert.equal(s.store.size,0);
+ const s=await setup(clone(seed),200,null,{submit:false});s.formValues.name='';s.save();assert.match(s.element('#form-error').textContent,/نام/);assert.deepEqual(JSON.parse([...s.store.values()][0]).catalog,seed);
 });
 
 test('selecting published opens the actual publishing step and keeps the live count unchanged',async()=>{
@@ -189,7 +189,7 @@ test('single-size inventory saves the editable quantity, including zero and an u
  }
  for(const value of ['-1','1.5']){
   const s=await setup(clone(seed),200,null,{formValues:{stock:value}});
-  assert.equal(s.store.size,0);assert.ok(s.element('#form-error').textContent);
+  assert.deepEqual(JSON.parse([...s.store.values()][0]).catalog,seed);assert.ok(s.element('#form-error').textContent);
  }
 });
 
@@ -208,4 +208,60 @@ test('size inventory and preparation times validate without inventing legacy sto
   assert.equal(H.validate(c),c);
   for(const mutate of [p=>p.sizeStock.M=-1,p=>p.sizeStock.M=1.5,p=>delete p.sizeStock.S,p=>p.sizeStock.XL=1,p=>p.stock=2,p=>p.productionDays=0,p=>p.dispatchDays=1.5,p=>p.madeToOrder='yes']){const bad=clone(c);mutate(bad.products[0]);assert.throws(()=>H.validate(bad));}
   p.sizeStock.L=1;p.stock=3;assert.equal(H.validate(c),c);
+});
+
+const workspace=s=>JSON.parse(s.store.get('hooya-catalog-workspace-v1'));
+test('stale local edits rebase onto shared products, including remote additions and deletions',async()=>{
+ const local=clone(seed),server=clone(seed);local.products[0].price=12500000;
+ server.version='2099-01-01T00:00:00.000Z';server.products[1].type='زیرعنوان تازه از سیستم دیگر';
+ const removed=server.products.pop().id,newProduct={...clone(server.products[2]),id:'remote-new',sku:'HYA-010',name:'محصول تازه روی سرور',status:'draft'};server.products.push(newProduct);
+ const s=await setup(clone(seed),200,null,{submit:false,server,saved:{catalog:local,baseline:clone(seed)}}),w=workspace(s);
+ assert.equal(w.catalog.products.find(p=>p.id===seed.products[0].id).price,12500000);
+ assert.equal(w.catalog.products.find(p=>p.id===seed.products[1].id).type,server.products[1].type);
+ assert.ok(w.catalog.products.some(p=>p.id===newProduct.id));assert.ok(!w.catalog.products.some(p=>p.id===removed));
+ assert.deepEqual(w.baseline,server);assert.equal(w.conflicts.length,0);assert.match(s.element('#products-region').innerHTML,/محصول تازه روی سرور/);assert.equal(s.element('#open-publish').disabled,false);
+});
+
+test('a simultaneous edit shows the current server product and preserves both copies across reloads until resolved',async()=>{
+ for(const choice of ['server','local']){
+  const local=clone(seed),server=clone(seed),id=seed.products[0].id;local.products[0].price=12500000;server.products[0].price=13500000;server.version='2099-01-01T00:00:00.000Z';
+  const s=await setup(clone(seed),200,null,{submit:false,server,saved:{catalog:local,baseline:clone(seed)}}),w=workspace(s);
+  assert.equal(w.catalog.products[0].price,13500000);assert.equal(w.conflicts[0].local.price,12500000);assert.equal(w.conflicts[0].remote.price,13500000);
+  assert.equal(s.element('#sync-conflicts').hidden,false);assert.equal(s.element('#open-publish').disabled,true);assert.match(s.element('#conflict-list').innerHTML,/قیمت/);
+  await s.edit(id);assert.equal(s.element('#editor').open,false);assert.match(s.element('#toast').textContent,/ابتدا نسخه/);
+  const reopened=await setup(clone(seed),200,null,{submit:false,server,saved:w});assert.equal(workspace(reopened).conflicts.length,1);
+  await reopened.resolve(id,choice);const resolved=workspace(reopened);assert.equal(resolved.conflicts.length,0);assert.equal(resolved.catalog.products.find(p=>p.id===id).price,choice==='local'?12500000:13500000);assert.equal(reopened.element('#open-publish').disabled,choice==='server');
+ }
+});
+
+test('polling updates a clean second device and preserves an editor already open when the server changes',async()=>{
+ const options={submit:false,server:clone(seed)},s=await setup(clone(seed),200,null,options),id=seed.products[0].id;
+ await s.edit(id);options.server.products[0].name='نام تازه از سیستم اول';options.server.version='2099-01-01T00:00:00.000Z';
+ assert.equal(s.timers[0].ms,5000);await s.timers[0].handler();
+ assert.match(s.element('#products-region').innerHTML,/نام تازه از سیستم اول/);assert.match(s.element('#sync-status').textContent,/آخرین دریافت/);
+ s.save();const w=workspace(s);assert.equal(w.catalog.products.find(p=>p.id===id).name,'نام تازه از سیستم اول');assert.equal(w.conflicts[0].local.name,'A new garment');assert.equal(s.element('#editor').open,false);
+});
+
+test('remote deletion against a local edit remains reviewable, while matching changes need no review',async()=>{
+ const local=clone(seed),server=clone(seed),id=seed.products[0].id;local.products[0].price=12500000;server.products.shift();server.version='2099-01-01T00:00:00.000Z';
+ const s=await setup(clone(seed),200,null,{submit:false,server,saved:{catalog:local,baseline:clone(seed)}});
+ assert.equal(workspace(s).conflicts[0].remote,null);assert.ok(!workspace(s).catalog.products.some(p=>p.id===id));await s.resolve(id,'local');assert.equal(workspace(s).catalog.products.find(p=>p.id===id).price,12500000);
+ const matching=await setup(clone(seed),200,null,{submit:false,server:local,saved:{catalog:local,baseline:clone(seed)}});assert.equal(workspace(matching).conflicts.length,0);assert.equal(matching.element('#open-publish').disabled,true);
+});
+
+test('new products from independent devices retain unique automatic codes after synchronization',async()=>{
+ const options={submit:false,server:clone(seed)},s=await setup(clone(seed),200,null,options);s.save();const mine=workspace(s).catalog.products[0];
+ options.server.products.push({...clone(mine),id:'remote-new',name:'محصول دستگاه دیگر'});options.server.version='2099-01-01T00:00:00.000Z';await s.refresh();
+ const w=workspace(s);assert.equal(w.catalog.products.find(p=>p.id===mine.id).sku,'HYA-010');assert.equal(w.catalog.products.find(p=>p.id==='remote-new').sku,'HYA-009');assert.equal(w.conflicts.length,0);
+});
+
+test('unchanged polling uses the ETag and never discards pending local changes',async()=>{
+ let reads=0;const transport=async(url,options)=>{if(url!=='/admin/api/catalog'||options.method==='POST')return;reads++;return reads===1?{ok:true,status:200,headers:{get:()=> '"catalog-test"'},json:async()=>({catalog:clone(seed),liveCatalog:clone(seed)})}:{ok:false,status:304};};
+ const s=await setup(clone(seed),200,null,{transport});await s.refresh();assert.equal(s.calls.at(-1).options.headers['If-None-Match'],'"catalog-test"');assert.equal(workspace(s).catalog.products.length,seed.products.length+1);assert.equal(workspace(s).conflicts.length,0);
+});
+
+test('publication fetches and shows newly accepted shared changes before asking for a second submission',async()=>{
+ const options={submit:false,server:clone(seed)},s=await setup(clone(seed),200,null,options);s.save();options.server.products[1].name='تغییر تازه پیش از انتشار';options.server.version='2099-01-01T00:00:00.000Z';
+ await s.publish();assert.ok(!s.calls.some(c=>c.options.method==='POST'));assert.match(s.element('#publish-error').textContent,/بررسی/);assert.match(s.element('#products-region').innerHTML,/تغییر تازه پیش از انتشار/);assert.equal(workspace(s).catalog.products.length,seed.products.length+1);
+ await s.publish();const posted=JSON.parse(s.calls.find(c=>c.options.method==='POST').options.body);assert.equal(posted.baseVersion,options.server.version);assert.equal(posted.catalog.products.find(p=>p.id===seed.products[1].id).name,'تغییر تازه پیش از انتشار');
 });
