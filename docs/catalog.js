@@ -25,7 +25,7 @@
   const explicitBase=typeof document==='undefined'?'':document.currentScript?.dataset?.assetBase;
   const assetBase = scriptUrl ? new URL('.',scriptUrl).href : explicitBase ? new URL(explicitBase,document.baseURI).href : '';
   const imageUrl = value => localImage(value) && assetBase ? new URL(value,assetBase).href : value;
-  const imagePreviews=window.HooyaImagePreviews||{};
+  const imagePreviews=typeof window==='undefined'?{}:window.HooyaImagePreviews||{};
   if(typeof document!=='undefined')document.querySelectorAll?.('img[data-full-src]').forEach(image=>{
     const [source,query]=image.getAttribute('data-full-src').split('?'),data=image.getAttribute('src'),version=new URLSearchParams(query).get('v');
     if(localImage(source)&&safeImage(data)&&/^[a-f0-9]{12}$/.test(version||''))imagePreviews[source]={data,version};
@@ -87,5 +87,7 @@
     const full=imageUrl(photoSource)+(instant?'?v='+preview.version:'');
     return photoSource && safeImage(photoSource) ? `<img class="product-photo custom-photo ${extra}" src="${escape(instant?preview.data:full)}"${instant?' data-full-src="'+escape(full)+'"':''} alt="${escape(p.name)}" loading="lazy">` : `<div class="product-photo photo-${p.photo} ${extra}" role="img" aria-label="${escape(p.name)}"></div>`;
   }
-  window.Hooya = {nextSku,sizeLabels,sizeLabel,detailFields,contentOf,newest,latest,kinds, stories, collections, collectionOf, statuses, escape, normalize, number, safeImage, imageUrl, images, validate,loadCatalog, photo};
+  const api = {nextSku,sizeLabels,sizeLabel,detailFields,contentOf,newest,latest,kinds, stories, collections, collectionOf, statuses, escape, normalize, number, safeImage, imageUrl, images, validate,loadCatalog, photo};
+  if(typeof window!=='undefined')window.Hooya=api;
+  if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })();

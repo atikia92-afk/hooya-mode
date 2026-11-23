@@ -10,6 +10,8 @@ ExecStart=/usr/bin/node /var/lib/hooya-source/backend-current/server/admin-serve
 Environment=HOOYA_ADMIN_CREDENTIALS=/etc/hooya-admin/credentials.json
 Environment=HOOYA_ADMIN_UI=/var/lib/hooya-source/admin-current
 Environment=HOOYA_ORDER_STATE=/var/lib/hooya-orders
+Environment=HOOYA_CATALOG_STATE=/var/lib/hooya-catalog
+ReadWritePaths=/var/lib/hooya-catalog
 StateDirectory=hooya-orders
 StateDirectoryMode=0700
 Restart=on-failure

@@ -2,7 +2,7 @@
 (() => {
   const H = window.Hooya, $ = s => document.querySelector(s), esc = H.escape, num = H.number;
   const STORAGE = 'hooya-catalog-workspace-v1';
-  const API = 'https://api.github.com/repos/atikia92-afk/hooya-mode/contents/docs/products.json';
+  const API = '/admin/api/catalog';
   let catalog, baseline, websiteCatalog, deploymentPending=false, statusFilter = 'all', inventoryOnly = false, view = 'table', selected = new Set(), toastTimer;
   let editingId = null, editingImage = '', editingImages = [], editorSnapshot = '', uploading = false, publishing = false, publishedMessage = '';
   const clone = value => JSON.parse(JSON.stringify(value));
@@ -215,14 +215,14 @@
   };
   document.addEventListener('click',async e=>{
     const edit=e.target.closest('[data-edit]'); if(edit)openEditor(edit.dataset.edit);
-    const close=e.target.closest('[data-close]'); if(close){ const id=close.dataset.close; if(id==='editor')await closeEditor();else if(!publishing){$('#'+id).close();$('#github-token').value='';} }
+    const close=e.target.closest('[data-close]'); if(close){ const id=close.dataset.close; if(id==='editor')await closeEditor();else if(!publishing)$('#'+id).close(); }
     const bulk=e.target.closest('[data-bulk]');
     if(bulk && !publishing){ const state=bulk.dataset.bulk; if(!await ask('تغییر وضعیت محصولات',`وضعیت ${num(selected.size)} محصول به «${state==='published'?'آماده انتشار':H.statuses[state]}» تغییر کند؟`,'ذخیره وضعیت'))return;
       catalog.products.forEach(p=>{if(selected.has(p.id)){p.status=state;p.updatedAt=new Date().toISOString();}}); selected.clear(); const persisted=saveLocal(); render(); toast(persisted?'وضعیت محصولات ذخیره شد. تغییرها هنوز منتشر نشده‌اند.':'ذخیره در مرورگر ممکن نشد. پیش از بستن صفحه نسخه پشتیبان بگیرید.');if(state==='published')$('#open-publish').onclick(); }
   });
   document.addEventListener('change', e=>{ if(e.target.matches('[data-select]')){ if(e.target.checked)selected.add(e.target.dataset.select);else selected.delete(e.target.dataset.select); render(); } });
   $('#editor').addEventListener('cancel',e=>{e.preventDefault();closeEditor();});
-  $('#publish-dialog').addEventListener('cancel',e=>{ if(publishing)e.preventDefault();else $('#github-token').value=''; });
+  $('#publish-dialog').addEventListener('cancel',e=>{ if(publishing)e.preventDefault(); });
   $('#add-product').onclick=()=>openEditor(); $('#side-add').onclick=()=>openEditor();
   $('#search').oninput=render; $('#kind-filter').onchange=render; $('#collection-filter').onchange=render; $('#sort').onchange=render;
   document.querySelectorAll('[data-status]').forEach(b=>b.onclick=()=>{statusFilter=b.dataset.status;inventoryOnly=false;selected.clear();render();});
@@ -245,15 +245,8 @@
   };
   $('#open-publish').onclick=()=>{
     $('#publish-summary').innerHTML=`<div class="change-list">${changes().map(c=>`<div><strong>${esc(c.product.name)}</strong><span>${esc(c.label)} · ${c.product.status==='published'?'نمایش در سایت':H.statuses[c.product.status]}</span></div>`).join('')}</div>`;
-    $('#publish-error').textContent='';$('#github-token').value='';$('#publish-dialog').showModal();
+    $('#publish-error').textContent='';$('#publish-login').hidden=true;$('#publish-dialog').showModal();
   };
-  const encode = value => { const bytes=new TextEncoder().encode(value); let binary='';for(const byte of bytes)binary+=String.fromCharCode(byte);return btoa(binary); };
-  const decode = value => { const binary=atob(value.replace(/\s/g,''));return new TextDecoder().decode(Uint8Array.from(binary,c=>c.charCodeAt(0))); };
-  async function github(token, method='GET', body) {
-    const response=await fetch(API+(method==='GET'?'?ref=main&t='+Date.now():''),{method,cache:'no-store',headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+token,'Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'},...(body?{body:JSON.stringify(body)}:{})});
-    if(!response.ok){const code=response.status;throw Error(code===401?'کلید دسترسی معتبر نیست.':code===403?'دسترسی نوشتن برای این مخزن وجود ندارد یا محدودیت GitHub فعال است.':code===409?'محصولات هم‌زمان در جای دیگری تغییر کرده‌اند. دوباره کاتالوگ را دریافت کنید.':code===404?'مخزن یا فایل در دسترس این کلید نیست. دسترسی مخزن hooya-mode را بررسی کنید.':`ارسال به GitHub انجام نشد (کد ${code}). تغییرهای محلی محفوظ‌اند.`);}
-    return response.json();
-  }
   async function confirmWebsiteVersion(expected,attempt=0){
     if(baseline.version!==expected)return;
     try{
@@ -265,16 +258,12 @@
   }
   $('#publish-form').onsubmit=async e=>{
     e.preventDefault();if(publishing)return;publishing=true;$('#publish-submit').disabled=true;$('#publish-error').textContent='';
-    const token=$('#github-token').value.trim();$('#github-token').value='';
     try {
-      H.validate(catalog);const remote=await github(token);
-      if(remote.encoding!=='base64')throw Error('دریافت کاتالوگ از GitHub کامل نشد.');
-      const current=H.validate(JSON.parse(decode(remote.content)));
-      // Compare full baseline, not just the timestamp: never overwrite another editor silently.
-      if(JSON.stringify(current)!==JSON.stringify(baseline))throw Error('کاتالوگ سایت از زمان شروع کار تغییر کرده است. یک پشتیبان بگیرید و با بازکردن داشبورد در مرورگر دیگر، نسخه جدید را بررسی کنید. برای حفظ تغییرها، ارسال متوقف شد.');
-      const next=clone(catalog);next.version=new Date().toISOString();
-      await github(token,'PUT',{message:'Update Hooya product catalog from dashboard',content:encode(JSON.stringify(next,null,2)+'\n'),sha:remote.sha,branch:'main'});
-      catalog=next;baseline=clone(next);saveLocal();deploymentPending=true;publishedMessage='تغییرها ارسال شدند؛ نمایش آن‌ها روی سایت در حال بررسی است.';render();$('#publish-dialog').close();toast('تغییرها ارسال شدند. منتظر تایید انتشار روی سایت باشید.');confirmWebsiteVersion(next.version);
+      H.validate(catalog);
+      const response=await fetch(API,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':$('#admin-csrf').value},body:JSON.stringify({catalog,baseVersion:baseline.version}),signal:AbortSignal.timeout(15000)});
+      const result=await response.json();
+      if(!response.ok){if(response.status===401)$('#publish-login').hidden=false;throw Error(result.error||'ارسال انجام نشد. تغییرهای محلی شما محفوظ است.');}
+      const next=H.validate(result.catalog);websiteCatalog=H.validate(result.liveCatalog);catalog=next;baseline=clone(next);saveLocal();deploymentPending=result.status!=='live';publishedMessage=deploymentPending?'تغییرها روی سرور ذخیره شدند؛ نمایش آن‌ها در سایت در حال بررسی است.':'انتشار این تغییرها در سایت تایید شد.';render();$('#publish-dialog').close();toast(deploymentPending?'تغییرها ثبت شدند. منتظر تایید انتشار روی سایت باشید.':'انتشار در سایت تایید شد.');if(deploymentPending)confirmWebsiteVersion(next.version);
     }catch(error){$('#publish-error').textContent=error.message||'ارتباط برقرار نشد. اتصال اینترنت را بررسی کنید.';}
     finally{publishing=false;$('#publish-submit').disabled=false;}
   };
@@ -284,26 +273,25 @@
     try {
       let saved;try{const raw=localStorage.getItem(STORAGE);if(raw){saved=JSON.parse(raw);H.validate(saved.catalog);H.validate(saved.baseline);}}catch{saved=null;}
       let snapshot;try{snapshot=H.validate(JSON.parse($('#admin-catalog-snapshot')?.textContent||'null'));}catch{}
-      const restore=live=>{
+      const restore=(target,live=target,authoritative=false)=>{
         websiteCatalog=live;
-        if(saved&&live&&sameProducts(saved.catalog,live)){catalog=clone(live);baseline=clone(live);saveLocal();}
-        else if(saved && !sameProducts(saved.catalog,saved.baseline)){
-          catalog=saved.catalog;baseline=saved.baseline;
-          if(live&&JSON.stringify(live)!==JSON.stringify(baseline))toast('تغییرهای محلی بازیابی شدند. کاتالوگ سایت نیز تغییر کرده؛ پیش از انتشار نسخه‌ها را بررسی کنید.');
-        }else if(saved && (!live || new Date(saved.baseline.version)>new Date(live.version))){catalog=saved.catalog;baseline=saved.baseline;}
-        else{catalog=clone(live);baseline=clone(live);}
+        const working=catalog?{catalog,baseline}:saved;
+        if(working&&target&&sameProducts(working.catalog,target)){catalog=clone(target);baseline=clone(target);saveLocal();}
+        else if(working&&!sameProducts(working.catalog,working.baseline)){
+          catalog=working.catalog;baseline=working.baseline;
+          if(target&&JSON.stringify(target)!==JSON.stringify(baseline))toast('محصولات روی سیستم دیگری تغییر کرده‌اند. تغییرهای محلی شما حفظ شده‌اند؛ پیش از ارسال نسخه‌ها را بررسی کنید.');
+        }else if(working&&!authoritative&&(!target||new Date(working.baseline.version)>new Date(target.version))){catalog=working.catalog;baseline=working.baseline;}
+        else{catalog=clone(target);baseline=clone(target);}
         deploymentPending=!!live&&!sameProducts(baseline,live)&&new Date(baseline.version)>new Date(live.version);
         render();
       };
-      if(snapshot||saved)restore(snapshot);
-      try{
-        const response=await fetch('../products.json',{cache:'no-store',signal:AbortSignal.timeout(4000)});if(!response.ok)throw Error();const live=H.validate(await response.json());
-        websiteCatalog=live;
-        if(!catalog)restore(live);
-        else if(sameProducts(catalog,live)){catalog=clone(live);baseline=clone(live);deploymentPending=false;saveLocal();render();}
-        else if(changes().length){if(JSON.stringify(live)!==JSON.stringify(baseline))toast('کاتالوگ سایت تغییر کرده است. تغییرهای محلی شما حفظ شده‌اند.');render();}
-        else if(new Date(live.version)>=new Date(baseline.version)){catalog=clone(live);baseline=clone(live);render();}
-      }catch{if(!catalog)throw Error('دریافت محصولات ممکن نشد. اتصال اینترنت را بررسی و صفحه را دوباره بارگذاری کنید.');}
+      if(snapshot||saved)restore(snapshot||saved.baseline);
+      const read=async(url,privateData=false)=>{const response=await fetch(url,{cache:'no-store',credentials:privateData?'same-origin':'omit',signal:AbortSignal.timeout(5000)});if(!response.ok)throw Error();const data=await response.json();return privateData?{catalog:H.validate(data.catalog),liveCatalog:H.validate(data.liveCatalog)}:H.validate(data);};
+      const [serverResult,liveResult]=await Promise.allSettled([read(API,true),read('../products.json')]);
+      const live=liveResult.status==='fulfilled'?liveResult.value:serverResult.status==='fulfilled'?serverResult.value.liveCatalog:websiteCatalog||snapshot;
+      if(serverResult.status==='fulfilled')restore(serverResult.value.catalog,live,true);
+      else if(live)restore(live,live);
+      else if(!catalog)throw Error('دریافت محصولات ممکن نشد. اتصال اینترنت را بررسی و صفحه را دوباره بارگذاری کنید.');
       if(deploymentPending)confirmWebsiteVersion(baseline.version);
     }catch(error){$('#sync-title').textContent='دریافت کاتالوگ انجام نشد';$('#sync-copy').textContent=error.message;$('#products-region').innerHTML='<div class="error-state"><h3>ارتباط با کاتالوگ برقرار نشد</h3><p>صفحه را دوباره بارگذاری کنید. تغییرهای ذخیره‌شده شما در مرورگر محفوظ‌اند.</p><button class="button secondary" onclick="location.reload()">تلاش دوباره</button></div>';}
   }

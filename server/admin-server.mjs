@@ -7,6 +7,7 @@ import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {createOrderStore} from './order-store.mjs';
 import {createOrders,sendKavenegar} from './orders.mjs';
+import {createCatalogPublisher,createFileCatalogStore} from './catalog-publisher.mjs';
 
 const derive=promisify(scrypt),COOKIE='__Host-hooya_admin',LOGIN='__Host-hooya_login';
 const digest=value=>createHash('sha256').update(value).digest('hex');
@@ -24,7 +25,7 @@ export async function passwordRecord(username,password){
  return {username,salt:salt.toString('base64'),hash:hash.toString('base64')};
 }
 
-export function createAdminServer({credentials,loginTemplate,readAdminFile,commerce,now=Date.now}){
+export function createAdminServer({credentials,loginTemplate,readAdminFile,commerce,catalogPublisher,now=Date.now}){
  if(!credentials||!/^[A-Za-z][A-Za-z0-9_.-]{2,31}$/.test(credentials.username)||Buffer.from(credentials.salt||'','base64').length!==32||Buffer.from(credentials.hash||'','base64').length!==64)throw Error('Invalid administrator configuration');
  const sessions=new Map(),challenges=new Map(),failures=new Map(),rateSalt=randomBytes(32).toString('hex');
  let checking=0;
@@ -36,7 +37,7 @@ export function createAdminServer({credentials,loginTemplate,readAdminFile,comme
   value.lastSeen=now();return key;
  };
  function respond(response,status,body='',headers={}){
-  response.writeHead(status,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store, no-transform','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','Referrer-Policy':'no-referrer','X-Robots-Tag':'noindex, nofollow','Content-Security-Policy':"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; connect-src 'self' https://api.github.com; font-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",...headers});response.end(body);
+  response.writeHead(status,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store, no-transform','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','Referrer-Policy':'no-referrer','X-Robots-Tag':'noindex, nofollow','Content-Security-Policy':"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",...headers});response.end(body);
  }
  function loginPage(response,status=200,message=''){
   const stamp=now();for(const [key,expiry] of challenges)if(expiry<stamp)challenges.delete(key);
@@ -46,6 +47,7 @@ export function createAdminServer({credentials,loginTemplate,readAdminFile,comme
  }
  const handler=async(request,response)=>{
   const pathname=new URL(request.url,'http://localhost').pathname;
+  if(catalogPublisher&&await catalogPublisher(request,response,req=>{const key=session(req);return key?sessions.get(key):null;}))return;
   if(commerce&&await commerce(request,response,req=>{const key=session(req);return key?sessions.get(key):null;}))return;
   if(request.method==='GET'&&pathname==='/admin/login'){
    if(session(request)){respond(response,303,'',{Location:'/admin/'});return;}
@@ -112,12 +114,14 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(realpathSync(path.resolve(pr
  const loginTemplate=await fs.readFile(new URL('./admin-login.html',import.meta.url),'utf8');
  const directory=process.env.HOOYA_ADMIN_UI||'/var/lib/hooya-source/admin-current';
  const state=process.env.HOOYA_ORDER_STATE||'/var/lib/hooya-orders';
+ const readCatalog=async()=>JSON.parse(await fs.readFile(process.env.HOOYA_CATALOG||'/var/www/hooyamode.ir/current/products.json','utf8'));
+ const catalogPublisher=createCatalogPublisher({store:createFileCatalogStore(process.env.HOOYA_CATALOG_STATE||'/var/lib/hooya-catalog'),readLive:readCatalog});
  const secret=(await fs.readFile(path.join(state,'secret'),'utf8')).trim();
  const smsFile=path.join(state,'sms.json');
  const readSmsConfig=async()=>{try{return JSON.parse(await fs.readFile(smsFile,'utf8'));}catch(error){if(error.code==='ENOENT')return {};throw error;}};
  const commerce=createOrders({store:createOrderStore(path.join(state,'orders.sqlite3')),secret,
-  readCatalog:async()=>JSON.parse(await fs.readFile(process.env.HOOYA_CATALOG||'/var/www/hooyamode.ir/current/products.json','utf8')),
+  readCatalog,
   readSmsConfig,writeSmsConfig:async config=>{const temporary=smsFile+'.next';await fs.writeFile(temporary,JSON.stringify(config),{mode:0o600});await fs.rename(temporary,smsFile);},sendSms:sendKavenegar});
- const server=createAdminServer({credentials,loginTemplate,readAdminFile:name=>fs.readFile(path.join(directory,name)),commerce});
+ const server=createAdminServer({credentials,loginTemplate,readAdminFile:name=>fs.readFile(path.join(directory,name)),commerce,catalogPublisher});
  server.listen(18481,'127.0.0.1',()=>console.log('Hooya administrator sign-in ready on loopback.'));
 }

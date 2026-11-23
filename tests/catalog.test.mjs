@@ -61,17 +61,24 @@ test('the private inline administrator bundle resolves product images at the sto
  assert.equal(context.window.Hooya.imageUrl('assets/products/swallow/card.webp'),'https://hooyamode.ir/assets/products/swallow/card.webp');
 });
 
-// Exercise the real publishing controller against an in-memory DOM and GitHub transport.
+// Exercise the real publishing controller against the signed-in server transport.
 async function setup(remote=clone(seed),putStatus=200,editId=null,options={}){
   const elements=new Map(),store=new Map(options.saved?[['hooya-catalog-workspace-v1',JSON.stringify(options.saved)]]:[]),calls=[],handlers=new Map();
   let encodedImages=0,committedCatalog;
   function element(key){if(!elements.has(key))elements.set(key,{value:'',textContent:'',innerHTML:'',hidden:false,disabled:false,open:false,listeners:new Map(),childNodes:[{textContent:''}],classList:{add(){},remove(){},toggle(){}},reset(){},addEventListener(event,handler){this.listeners.set(event,handler);},setAttribute(){},showModal(){this.open=true;},close(){this.open=false;}});return elements.get(key);}
   const formValues={name:'A new garment',sku:'QA-NEW',kind:'vest',type:'Linen',story:'myth',tag:'Story',description:'A garment',price:'1200000',stock:'4','stock-M':'4',madeToOrder:'on',productionDays:'12',dispatchDays:'2',colors:'#aabbcc',status:'draft'};
   element('#sample-photo').value='0';element('#kind-filter').value='all';element('#collection-filter').value='all';element('#collection').value='mythical-creatures';element('#sort').value='newest';
+  element('#admin-csrf').value='test-session-proof';
   const context={window:{addEventListener(){}},document:{querySelector:element,querySelectorAll:()=>[],createElement(tag){assert.equal(tag,'canvas');return {getContext:()=>({fillRect(){},drawImage(){}}),toDataURL:()=> 'data:image/webp;base64,'+Buffer.from('encoded-image-'+ ++encodedImages).toString('base64')};},addEventListener(event,handler){handlers.set(event,handler);}},Image:class{width=100;height=100;async decode(){}},AbortSignal,TextEncoder,TextDecoder,Intl,Date,URL,Blob,crypto:{randomUUID:()=> 'test-id'},setTimeout:()=>0,setInterval:()=>0,clearTimeout(){},btoa:x=>Buffer.from(x,'binary').toString('base64'),atob:x=>Buffer.from(x,'base64').toString('binary'),FormData:class{get(k){if(k==='collection')return element('#collection').value;if(k.startsWith('fit-')&&editId)return seed.products.find(p=>p.id===editId).details?.sizeNotes[k.slice(4)]||'';return formValues[k]??elements.get('#'+k)?.value??'';}getAll(){return editId?seed.products.find(p=>p.id===editId).sizes:['M'];}},localStorage:{getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v)},fetch:async(url,options={})=>{
     calls.push({url,options});if(url==='../products.json'||url.startsWith('../products.json?v='))return {ok:true,json:async()=>clone(committedCatalog||seed)};
-    if(options.method==='PUT'){if(putStatus===200&&setupOptions.confirmWebsite)committedCatalog=JSON.parse(Buffer.from(JSON.parse(options.body).content,'base64').toString('utf8'));return{ok:putStatus===200,status:putStatus,json:async()=>({commit:{sha:'commit'}})};}
-    return{ok:true,json:async()=>({sha:'baseline-sha',encoding:'base64',content:Buffer.from(JSON.stringify(remote)).toString('base64')})};
+    if(url==='/admin/api/catalog'&&options.method!=='POST')return {ok:true,json:async()=>({catalog:clone(setupOptions.server||seed),liveCatalog:clone(seed)})};
+    if(url==='/admin/api/catalog'&&options.method==='POST'){
+      if(putStatus>=400)return {ok:false,status:putStatus,json:async()=>({error:putStatus===401?'نشست مدیریت منقضی شده است. دوباره وارد شوید.':'ذخیره روی سرور انجام نشد.'})};
+      const body=JSON.parse(options.body);if(body.baseVersion!==remote.version)return {ok:false,status:409,json:async()=>({error:'محصولات در سیستم دیگری تغییر کرده‌اند.'})};
+      const accepted={...body.catalog,version:new Date(Date.parse(remote.version)+1).toISOString()};if(setupOptions.confirmWebsite)committedCatalog=clone(accepted);
+      return {ok:true,status:202,json:async()=>({catalog:accepted,liveCatalog:clone(seed),status:'pending'})};
+    }
+    throw Error('Unexpected request '+url);
   }};
   const setupOptions=options;
   vm.createContext(context);vm.runInContext(source,context);vm.runInContext(adminSource,context);
@@ -80,7 +87,7 @@ async function setup(remote=clone(seed),putStatus=200,editId=null,options={}){
   const save=()=>element('#product-form').onsubmit({preventDefault(){}});
   if(options.submit!==false)save();
   const galleryClick=(selector,dataset)=>element('#gallery-preview').listeners.get('click')({target:{closest:s=>s===selector?{dataset}:null}});
-  return {element,store,calls,formValues,save,upload:async files=>{element('#image-file').files=files;await element('#image-file').onchange();},cover:index=>galleryClick('[data-gallery-cover]',{galleryCover:index}),remove:index=>galleryClick('[data-gallery-remove]',{galleryRemove:index}),publish:async()=>{element('#github-token').value='fake-session-token';await element('#publish-form').onsubmit({preventDefault(){}});}};
+  return {element,store,calls,formValues,save,upload:async files=>{element('#image-file').files=files;await element('#image-file').onchange();},cover:index=>galleryClick('[data-gallery-cover]',{galleryCover:index}),remove:index=>galleryClick('[data-gallery-remove]',{galleryRemove:index}),publish:async()=>{await element('#publish-form').onsubmit({preventDefault(){}});}};
 }
 
 test('automatic product codes advance beyond every saved or archived code',()=>{
@@ -115,9 +122,9 @@ test('selecting published opens the actual publishing step and keeps the live co
  const s=await setup(clone(seed),200,null,{submit:false});s.formValues.status='published';s.save();
  assert.equal(s.element('#publish-dialog').open,true);assert.match(s.element('#products-region').innerHTML,/آماده انتشار/);
  assert.equal(s.element('#stat-published').textContent,contract().number(seed.products.length));
- assert.ok(!s.calls.some(c=>c.options.method==='PUT'));
+ assert.ok(!s.calls.some(c=>c.options.method==='POST'));
 });
-test('a GitHub write alone does not claim a product is live',async()=>{
+test('a server acknowledgement alone does not claim a product is live',async()=>{
  const s=await setup(clone(seed),200,null,{submit:false});s.formValues.status='published';s.save();await s.publish();await new Promise(resolve=>setImmediate(resolve));
  assert.match(s.element('#products-region').innerHTML,/در حال انتشار/);assert.match(s.element('#sync-title').textContent,/در انتظار/);
  assert.equal(s.element('#stat-published').textContent,contract().number(seed.products.length));
@@ -138,25 +145,32 @@ test('a website refresh never drops genuine unpublished local edits',async()=>{
  assert.equal(s.element('#open-publish').disabled,false);assert.match(s.element('#products-region').innerHTML,/تغییرات ارسال نشده/);
  assert.equal(JSON.parse([...s.store.values()][0]).catalog.products[0].price,12500000);
 });
-test('publishes UTF-8 catalog with SHA guard and never persists the token',async()=>{
-  const s=await setup();await s.publish();const put=s.calls.find(c=>c.options.method==='PUT');assert.ok(put);
-  const body=JSON.parse(put.options.body);assert.equal(body.sha,'baseline-sha');assert.equal(body.branch,'main');
-  const catalog=JSON.parse(Buffer.from(body.content,'base64').toString('utf8'));assert.equal(catalog.products.length,seed.products.length+1);assert.equal(catalog.products[1].name,seed.products[0].name);assert.equal(catalog.products[0].status,'draft');assert.deepEqual(catalog.products[1].images,seed.products[0].images);
+test('publishes directly with the manager session and revision guard, without a GitHub credential',async()=>{
+  const s=await setup();await s.publish();const put=s.calls.find(c=>c.options.method==='POST');assert.ok(put);
+  const body=JSON.parse(put.options.body);assert.equal(body.baseVersion,seed.version);assert.equal(put.url,'/admin/api/catalog');assert.equal(put.options.credentials,'same-origin');assert.equal(put.options.headers['X-CSRF-Token'],'test-session-proof');
+  const catalog=body.catalog;assert.equal(catalog.products.length,seed.products.length+1);assert.equal(catalog.products[1].name,seed.products[0].name);assert.equal(catalog.products[0].status,'draft');assert.deepEqual(catalog.products[1].images,seed.products[0].images);
   assert.deepEqual(catalog.products[0].sizeStock,{M:4});assert.equal(catalog.products[0].stock,4);assert.equal(catalog.products[0].madeToOrder,true);assert.equal(catalog.products[0].productionDays,12);assert.equal(catalog.products[0].dispatchDays,2);
-  assert.ok(![...s.store.values()].join('').includes('fake-session-token'));assert.equal(s.element('#github-token').value,'');assert.equal(s.element('#publish-error').textContent,'');
+  assert.ok(![...s.store.values()].join('').includes('test-session-proof'));assert.ok(s.calls.every(c=>!c.url.includes('github')));assert.equal(s.element('#publish-error').textContent,'');
 });
 test('concurrent catalog changes stop publication without a PUT',async()=>{
-  const remote=clone(seed);remote.products[0].name='Changed by another editor';const s=await setup(remote);await s.publish();assert.ok(!s.calls.some(c=>c.options.method==='PUT'));assert.match(s.element('#publish-error').textContent,/تغییر کرده/);
+  const remote=clone(seed);remote.products[0].name='Changed by another editor';remote.version='2099-01-01T00:00:00.000Z';const s=await setup(remote);await s.publish();assert.match(s.element('#publish-error').textContent,/تغییر کرده/);
 });
 test('editing product metadata preserves its three-image gallery through publication',async()=>{
   const p=seed.products[0],s=await setup(clone(seed),200,p.id);await s.publish();
-  const body=JSON.parse(s.calls.find(c=>c.options.method==='PUT').options.body);
-  const catalog=JSON.parse(Buffer.from(body.content,'base64').toString('utf8'));
+  const body=JSON.parse(s.calls.find(c=>c.options.method==='POST').options.body);
+  const catalog=body.catalog;
   const edited=catalog.products.find(x=>x.id===p.id);assert.deepEqual(edited.images,p.images);assert.equal(edited.image,p.image);assert.equal(edited.collection,p.collection);assert.equal(catalog.products.length,seed.products.length);
   assert.deepEqual(edited.narrative,p.narrative);assert.deepEqual(edited.details,p.details);assert.deepEqual(edited.sizes,p.sizes);
 });
 test('failed publication retains local changes and re-enables retry',async()=>{
-  const s=await setup(clone(seed),403);await s.publish();assert.match(s.element('#publish-error').textContent,/دسترسی نوشتن/);const saved=JSON.parse([...s.store.values()][0]);assert.equal(saved.catalog.products.length,seed.products.length+1);assert.equal(saved.baseline.products.length,seed.products.length);assert.equal(s.element('#publish-submit').disabled,false);
+  const s=await setup(clone(seed),503);await s.publish();assert.match(s.element('#publish-error').textContent,/ذخیره روی سرور/);const saved=JSON.parse([...s.store.values()][0]);assert.equal(saved.catalog.products.length,seed.products.length+1);assert.equal(saved.baseline.products.length,seed.products.length);assert.equal(s.element('#publish-submit').disabled,false);
+});
+test('an expired manager session offers sign-in without losing local product data',async()=>{
+ const s=await setup(clone(seed),401);await s.publish();assert.equal(s.element('#publish-login').hidden,false);assert.match(s.element('#publish-error').textContent,/نشست/);assert.equal(JSON.parse([...s.store.values()][0]).catalog.products.length,seed.products.length+1);
+});
+test('a different device reads the accepted catalog from the server before deployment completes',async()=>{
+ const server=clone(seed);server.version='2099-01-01T00:00:00.000Z';server.products[0].name='به‌روز شده روی سیستم دیگر';
+ const s=await setup(clone(seed),200,null,{submit:false,server});assert.match(s.element('#products-region').innerHTML,/به‌روز شده روی سیستم دیگر/);assert.equal(s.element('#open-publish').disabled,true);assert.match(s.element('#sync-title').textContent,/در انتظار/);
 });
 
 test('size inventory and preparation times validate without inventing legacy stock',()=>{

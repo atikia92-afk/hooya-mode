@@ -4,7 +4,7 @@ state=/var/lib/hooya-source
 target=$(readlink -f "$state/backend-current")
 [[ $target == "$state/backend-releases/"* && -f $target/server/admin-server.mjs ]] || exit 1
 # Frontend-only commits must not log every customer and administrator out.
-fingerprint=$(find "$target/server" -maxdepth 1 -type f -print0 | sort -z | xargs -0 sha256sum | sed "s|$target/||" | sha256sum | cut -d' ' -f1)
+fingerprint=$({ find "$target/server" -maxdepth 1 -type f -print0 | sort -z | xargs -0 sha256sum; sha256sum "$target/docs/catalog.js"; } | sed "s|$target/||" | sha256sum | cut -d' ' -f1)
 previous=$(cat "$state/.backend-loaded" 2>/dev/null || true)
 [[ $fingerprint != "$previous" ]] || exit 0
 node --check "$target/server/admin-server.mjs"
