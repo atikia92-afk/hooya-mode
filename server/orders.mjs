@@ -29,7 +29,7 @@ export function selectItems(input,products){
 export function publicOrder(order){
  const {requestKey,payloadHash,privateNote,seenAt,...result}=order;return result;
 }
-export function createOrders({store,secret,readCatalog,readSmsConfig,writeSmsConfig,sendSms,now=Date.now}){
+export function createOrders({store,secret,readCatalog,readSmsConfig,writeSmsConfig,sendSms,notifications,now=Date.now}){
  if(typeof secret!=='string'||secret.length<43)throw Error('A persistent order signing secret is required');
  const sign=value=>createHmac('sha256',secret).update(value).digest('base64url'),sessions=new Map();
  const tracking=order=>sign('receipt:'+order.id+':'+order.requestKey);
@@ -70,8 +70,8 @@ export function createOrders({store,secret,readCatalog,readSmsConfig,writeSmsCon
     const items=selectItems(input.items,(await readCatalog()).products),createdAt=new Date(now()).toISOString();
     const subtotal=items.every(x=>Number.isSafeInteger(x.unitPriceToman)&&x.unitPriceToman>=0)?items.reduce((sum,x)=>sum+x.qty*x.unitPriceToman,0):null;
     const order={id:randomUUID(),requestKey:key,payloadHash,...validated.data,items,subtotalToman:subtotal,status:'received',payment:{status:'unpaid'},stockConfirmed:false,preparationDays:null,shippingEstimateToman:null,shippingMethod:'postpaid',quoteAcceptedVersion:null,privateNote:'',seenAt:null,createdAt,updatedAt:createdAt,version:1,history:[{at:createdAt,status:'received',label:'سفارش دریافت شد',note:'موجودی، زمان آماده سازی و هزینه ارسال پیش از پرداخت تایید می‌شود.'}]};
-    const saved=await store('create',{key,hash:payloadHash,order});if(saved.hash!==payloadHash)throw fail('اطلاعات این درخواست تغییر کرده است.',409);
-    json(res,201,receipt(saved.order));return true;
+    const saved=await store('create',{key,hash:payloadHash,order,channels:notifications?await notifications.channels():[]});if(saved.hash!==payloadHash)throw fail('اطلاعات این درخواست تغییر کرده است.',409);
+    json(res,201,receipt(saved.order));notifications?.kick();return true;
    }
    if(path==='/api/customer/v1/session'&&req.method==='GET'){
     const current=user(req),sms=await readSmsConfig();let browser=jar(req)['__Host-hooya_browser'];if(!/^[\w-]{43}$/.test(browser||''))browser=randomBytes(32).toString('base64url');
@@ -114,6 +114,13 @@ export function createOrders({store,secret,readCatalog,readSmsConfig,writeSmsCon
     json(res,200,{order:publicOrder(order)});return true;
    }
    if(path==='/admin/api/order-counts'&&req.method==='GET'){json(res,200,await store('counts'));return true;}
+   if(path==='/admin/api/notifications'&&req.method==='GET'&&notifications){json(res,200,await notifications.status());return true;}
+   if(path==='/admin/api/notifications'&&req.method==='POST'&&notifications){json(res,200,await notifications.configure(await body(req)));return true;}
+   if(path==='/admin/api/notifications/retry'&&req.method==='POST'&&notifications){const input=await body(req);json(res,200,await notifications.retry(input.channel));return true;}
+   if(path==='/admin/api/notifications/test'&&req.method==='POST'&&notifications){
+    await rate(req,'notification-test',10,3600000);const input=await body(req);
+    try{json(res,200,await notifications.test(input.channel));}catch(error){throw fail(error.status?error.message:'ارسال آزمایشی انجام نشد؛ توکن، شناسه گفتگو و اتصال پیام رسان را بررسی کنید.',error.status||502);}return true;
+   }
    if(path==='/admin/api/orders'&&req.method==='GET'){
     const orders=await store('list');json(res,200,{orders:orders.map(({requestKey,payloadHash,...order})=>order),states,unread:orders.filter(o=>!o.seenAt).length});return true;
    }

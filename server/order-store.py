@@ -19,6 +19,12 @@ CREATE TABLE IF NOT EXISTS otp (
  id TEXT PRIMARY KEY, phone TEXT NOT NULL, hash TEXT NOT NULL, browser TEXT NOT NULL,
  expires INTEGER NOT NULL, attempts INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS order_notifications (
+ order_id TEXT NOT NULL, channel TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
+ attempts INTEGER NOT NULL DEFAULT 0, next_at INTEGER NOT NULL DEFAULT 0,
+ locked_until INTEGER NOT NULL DEFAULT 0, lease TEXT, delivered_at INTEGER,
+ last_error TEXT, message_id TEXT, PRIMARY KEY(order_id,channel)
+);
 ''')
 data = json.load(sys.stdin)
 op = data['op']
@@ -28,13 +34,39 @@ with db:
         result = {'available': True}
     elif op == 'create':
         order = data['order']
-        db.execute('INSERT INTO orders VALUES (?,?,?,?,?,?,?) ON CONFLICT(request_key) DO NOTHING',
+        inserted = db.execute('INSERT INTO orders VALUES (?,?,?,?,?,?,?) ON CONFLICT(request_key) DO NOTHING',
                    (order['id'], data['key'], data['hash'], order['billing']['phone'], order['createdAt'], 1, json.dumps(order, ensure_ascii=False)))
+        if inserted.rowcount:
+            for channel in data.get('channels', []):
+                if channel in ('telegram', 'bale'):
+                    db.execute('INSERT OR IGNORE INTO order_notifications(order_id,channel) VALUES (?,?)', (order['id'], channel))
         row = db.execute('SELECT id,payload_hash,body FROM orders WHERE request_key=?', (data['key'],)).fetchone()
         result = {'hash': row['payload_hash'], 'order': json.loads(row['body'])}
     elif op == 'previous':
         row = db.execute('SELECT payload_hash,body FROM orders WHERE request_key=?', (data['key'],)).fetchone()
         result = {'hash': row['payload_hash'], 'order': json.loads(row['body'])} if row else None
+    elif op == 'notification_claim':
+        db.execute('BEGIN IMMEDIATE')
+        channels = [channel for channel in data['channels'] if channel in ('telegram', 'bale')]
+        row = db.execute("SELECT n.order_id,n.channel,n.attempts,o.body FROM order_notifications n JOIN orders o ON o.id=n.order_id WHERE n.status='pending' AND n.next_at<=? AND n.locked_until<=? AND n.channel IN (" + ','.join('?' for _ in channels) + ") ORDER BY o.created_at,n.channel LIMIT 1", (data['now'], data['now'], *channels)).fetchone() if channels else None
+        if row:
+            db.execute('UPDATE order_notifications SET attempts=attempts+1,locked_until=?,lease=? WHERE order_id=? AND channel=?', (data['now']+60000, data['lease'], row['order_id'], row['channel']))
+            result = {'channel': row['channel'], 'attempts': row['attempts']+1, 'order': json.loads(row['body'])}
+    elif op == 'notification_finish':
+        if data.get('deliveredAt') is not None:
+            db.execute("UPDATE order_notifications SET status='delivered',delivered_at=?,message_id=?,last_error=NULL,locked_until=0 WHERE order_id=? AND channel=? AND lease=?", (data['deliveredAt'], data.get('messageId', ''), data['orderId'], data['channel'], data['lease']))
+        else:
+            db.execute('UPDATE order_notifications SET status=?,last_error=?,next_at=?,locked_until=0 WHERE order_id=? AND channel=? AND lease=?', ('failed' if data.get('failed') else 'pending', data['error'][:200], data['nextAt'], data['orderId'], data['channel'], data['lease']))
+        result = True
+    elif op == 'notification_status':
+        result = {}
+        for channel in ('telegram', 'bale'):
+            counts = db.execute('SELECT status,COUNT(*) AS total FROM order_notifications WHERE channel=? GROUP BY status', (channel,)).fetchall()
+            latest = db.execute('SELECT delivered_at,last_error FROM order_notifications WHERE channel=? ORDER BY COALESCE(delivered_at, next_at) DESC LIMIT 1', (channel,)).fetchone()
+            result[channel] = {'counts': {row['status']: row['total'] for row in counts}, 'lastDeliveredAt': latest['delivered_at'] if latest else None, 'lastError': latest['last_error'] if latest else None}
+    elif op == 'notification_retry':
+        changed = db.execute("UPDATE order_notifications SET status='pending',attempts=0,next_at=0,locked_until=0,lease=NULL WHERE channel=? AND status='failed'", (data['channel'],))
+        result = {'retried': changed.rowcount}
     elif op == 'get':
         row = db.execute('SELECT body FROM orders WHERE id=?', (data['id'],)).fetchone()
         result = json.loads(row['body']) if row else None

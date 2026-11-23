@@ -131,10 +131,15 @@ for(const name of ['index.html','products.html','cart.html','checkout.html','abo
 // Keep order management behind the same server session as the catalog editor.
 {
  const file=new URL('orders.html',adminDirectory);let html=await fs.readFile(file,'utf8');
+ const notifications=(await fs.readFile(new URL('notifications.html',adminDirectory),'utf8')).trim();
+ html=html.replace(/<section class="panel notifications" id="notification-settings"[\s\S]*?<\/section>\s*/g,'');
+ html=html.replace('<details class="panel sms">',()=>notifications+'\n<details class="panel sms">');
+ html=html.replace('پیامک اطلاع رسانی مدیریت هنوز فعال نیست.','وضعیت اتصال تلگرام و بله در بخش اعلان سفارش مشخص است.');
  html=html.replace(/<script src="orders.js"><\/script>/g,'').replace(/<script data-hooya-orders>[\s\S]*?<\/script>/g,'');
  const js=(await fs.readFile(new URL('orders.js',adminDirectory),'utf8')).replaceAll('\r\n','\n');
  html=html.replace('</body>',()=>'<script data-hooya-orders>'+js.replace(/<\/script/gi,'<\\/script')+'</script></body>');await fs.writeFile(file,html);
  const home=new URL('index.html',adminDirectory);let admin=await fs.readFile(home,'utf8');
+ if(!admin.includes('id="dashboard-orders"'))admin=admin.replace('<section class="stats" aria-label="خلاصه محصولات">','<section class="publish-strip" id="dashboard-orders" aria-label="خلاصه سفارش ها"><div><strong>سفارش های فروشگاه</strong><p id="dashboard-orders-copy" role="status">در حال دریافت سفارش ها…</p></div><a class="button primary" href="/admin/orders">مشاهده و مدیریت سفارش ها</a></section>\n<section class="stats" aria-label="خلاصه محصولات">');
  if(!admin.includes('id="nav-orders"'))admin=admin.replace('<nav>','<nav><a class="nav-item" id="nav-orders" href="/admin/orders">سفارش ها</a>');
  if(!admin.includes('id="top-orders"'))admin=admin.replace('<div class="topbar-end">','<div class="topbar-end"><a class="button secondary" id="top-orders" href="/admin/orders">سفارش ها</a>');
  await fs.writeFile(home,admin);

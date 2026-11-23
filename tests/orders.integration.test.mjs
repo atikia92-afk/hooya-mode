@@ -7,6 +7,7 @@ import path from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {createOrderStore} from '../server/order-store.mjs';
 import {createOrders} from '../server/orders.mjs';
+import {createNotifications} from '../server/notifications.mjs';
 
 const enabled=process.platform!=='win32'||!!process.env.HOOYA_TEST_PYTHON;
 const contact={firstName:'آزمون',lastName:'سامانه',country:'IR',province:'تهران',city:'تهران',address:'نشانی آزمایشی سامانه پلاک صفر',unit:'',postcode:'1111111111',phone:'09120000000'};
@@ -14,15 +15,27 @@ const payload=()=>({billing:{...contact},shipping:{...contact},differentShipping
 async function setup(t){
  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'hooya-order-test-')),database=path.join(directory,'orders.sqlite3');
  const store=createOrderStore(database,{python:process.env.HOOYA_TEST_PYTHON||'python3'});let config={},sent=[],clock=Date.now();
- const options={store,secret:'test-only-order-signing-secret-abcdefghijklmnopqrstuvwxyz',readCatalog:async()=>({schema:1,products:[{id:'sample',name:'لباس آزمایشی',status:'published',sizes:['Free'],stock:null,madeToOrder:false,price:100000}]}),readSmsConfig:async()=>config,writeSmsConfig:async value=>config=value,sendSms:async message=>{sent.push(message);},now:()=>clock};
+ let notificationConfig={},alerts=[];
+ const notifications=createNotifications({store,readConfig:async()=>notificationConfig,writeConfig:async value=>notificationConfig=value,send:async message=>{alerts.push(message);return{messageId:'test'};},now:()=>clock});
+ const options={store,notifications,secret:'test-only-order-signing-secret-abcdefghijklmnopqrstuvwxyz',readCatalog:async()=>({schema:1,products:[{id:'sample',name:'لباس آزمایشی',status:'published',sizes:['Free'],stock:null,madeToOrder:false,price:100000}]}),readSmsConfig:async()=>config,writeSmsConfig:async value=>config=value,sendSms:async message=>{sent.push(message);},now:()=>clock};
  const handle=createOrders(options),server=http.createServer((req,res)=>{handle(req,res,request=>request.headers.authorization==='test-admin'?{csrf:'test-admin-csrf'}:null).then(done=>{if(!done){res.writeHead(404);res.end();}});});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await fs.rm(directory,{recursive:true,force:true});});
  const origin='http://127.0.0.1:'+server.address().port;
  const request=async(route,data,headers={})=>{const response=await fetch(origin+route,{method:data?'POST':'GET',headers:{Origin:'https://hooyamode.ir',...(data?{'Content-Type':'application/json'}:{}),...headers},...(data?{body:JSON.stringify(data)}:{})});return {status:response.status,data:await response.json(),headers:response.headers};};
  const submit=(data=payload(),key=randomUUID())=>request('/api/customer/v1/customer-details',data,{'Idempotency-Key':key});
  const admin=(route,data)=>request('/admin/api/'+route,data,{Authorization:'test-admin','X-CSRF-Token':'test-admin-csrf'});
- return {request,submit,admin,store,sent,config:value=>config=value,advance:ms=>clock+=ms,database};
+ return {request,submit,admin,store,sent,notifications,alerts,config:value=>config=value,advance:ms=>clock+=ms,database};
 }
+
+test('notification settings require the manager session and CSRF; only saved orders enqueue alerts',{skip:!enabled},async t=>{
+ const app=await setup(t),config={channel:'telegram',enabled:true,token:'12345:abcdefghijklmnopqrstuvwxyz',chatId:'12345'};
+ assert.equal((await app.request('/admin/api/notifications')).status,401);
+ assert.equal((await app.request('/admin/api/notifications',config,{Authorization:'test-admin'})).status,403);
+ assert.equal((await app.admin('notifications',config)).status,200);
+ const status=(await app.admin('notifications')).data;assert.equal(status.channels[0].configured,true);assert.ok(!JSON.stringify(status).includes(config.token));
+ const key=randomUUID(),order=(await app.submit(payload(),key)).data;await app.notifications.kick();assert.equal(app.alerts.length,1);
+ assert.equal((await app.admin('orders')).data.orders[0].id,order.reference);await app.submit(payload(),key);await app.notifications.kick();assert.equal(app.alerts.length,1);
+});
 
 test('durable orders snapshot server prices, retry once and reject conflicting idempotency payloads',{skip:!enabled},async t=>{
  const app=await setup(t),key=randomUUID(),data=payload();
@@ -45,6 +58,12 @@ test('private orders need a receipt secret or authenticated role; UUIDs, foreign
  assert.match(valid.headers.get('cache-control'),/no-store/);
  assert.equal((await app.request('/api/customer/v1/track',{id:receipt.reference,token:receipt.trackingToken},{Origin:'https://evil.example'})).status,403);
  assert.equal((await app.request('/admin/api/order',{id:receipt.reference,action:'seen',version:1},{Authorization:'test-admin'})).status,403);
+});
+test('embedded-browser checkout proves the browser session and reaches the same administrator order list',{skip:!enabled},async t=>{
+ const app=await setup(t),session=await app.request('/api/customer/v1/session'),headers={Origin:'null',Cookie:session.headers.get('set-cookie').split(';')[0],'Idempotency-Key':randomUUID()};
+ assert.equal((await app.request('/api/customer/v1/customer-details',payload(),headers)).status,403);
+ const submitted=await app.request('/api/customer/v1/customer-details',payload(),{...headers,'X-CSRF-Token':session.data.csrf});
+ assert.equal(submitted.status,201);const list=await app.admin('orders');assert.equal(list.data.orders[0].id,submitted.data.reference);
 });
 
 test('admin state changes enforce preparation, payment, shipment and concurrent-edit safeguards',{skip:!enabled},async t=>{

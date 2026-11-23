@@ -2,7 +2,7 @@ import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 export function createOrderStore(database,{python=process.env.HOOYA_PYTHON||'python3'}={}){
  return async(op,data={})=>new Promise((resolve,reject)=>{
-  const child=spawn(python,[fileURLToPath(new URL('./order-store.py',import.meta.url)),database],{stdio:['pipe','pipe','pipe'],windowsHide:true});
+  const child=spawn(python,['-X','utf8',fileURLToPath(new URL('./order-store.py',import.meta.url)),database],{stdio:['pipe','pipe','pipe'],windowsHide:true});
   let output='',failed=false;const timer=setTimeout(()=>{failed=true;child.kill();reject(Error('Order storage timeout'));},8000);
   child.stdout.on('data',part=>{output+=part;if(Buffer.byteLength(output)>2_000_000){failed=true;child.kill();reject(Error('Order response too large'));}});
   // SQLite exception text may contain private values. Never forward stderr to logs.

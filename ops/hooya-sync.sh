@@ -63,6 +63,7 @@ fi
 # A release may already have been prepared by an older installed sync helper.
 cp "$work/docs/catalog.js" "$state/backend-releases/$commit/docs/catalog.js"
 chmod 0644 "$state/backend-releases/$commit/docs/catalog.js"
+node --input-type=module -e 'const target=process.argv.pop(); await import(target)' "$state/backend-releases/$commit/server/admin-server.mjs"
 ln -s "$state/backend-releases/$commit" "$state/.backend-next-$$"
 mv -Tf "$state/.backend-next-$$" "$state/backend-current"
 python3 - "$work/docs/release.json" "$commit" "$catalog_hash" <<'PY'

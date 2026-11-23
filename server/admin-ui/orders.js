@@ -9,7 +9,7 @@
   for(const [id,state] of [['new','received'],['payment','awaiting_payment'],['preparing','preparing'],['shipped','shipped']])$('#'+id+'-count').textContent=num(orders.filter(o=>o.status===state).length);
   $('#order-list').innerHTML=filtered.length?filtered.map(o=>`<article class="order-row"><div><strong>${esc(o.billing.firstName+' '+o.billing.lastName)}</strong>${o.seenAt?'':'<span class="new">دیده نشده</span>'}<small>${date(o.createdAt)}</small><small class="mono">${esc(o.id)}</small></div><div>${o.items.map(x=>esc(x.name)+' × '+num(x.qty)).join('<br>')}<small>${num(o.items.reduce((n,x)=>n+x.qty,0))} لباس</small></div><div><span class="pill">${esc(states[o.status])}</span><small>${o.payment.status==='paid'?'وجه دریافت شده':'پرداخت نشده'}</small><strong>${money(o.subtotalToman)}</strong></div><button data-open="${esc(o.id)}">جزئیات و مدیریت</button></article>`).join(''):'<div class="empty">سفارشی با این شرایط وجود ندارد.</div>';
  }
- async function load(){if(loading)return;loading=true;$('#refresh').disabled=true;try{const data=await api('orders');orders=data.orders;states=data.states;if($('#status').options.length===1)for(const [key,value] of Object.entries(states))$('#status').add(new Option(value,key));render();$('#updated').textContent='آخرین دریافت: '+date(new Date());$('#notice').textContent='';}catch(error){$('#notice').textContent=error.message;}finally{loading=false;$('#refresh').disabled=false;}}
+ async function load(){if(loading)return;loading=true;$('#refresh').disabled=true;try{const data=await api('orders');orders=data.orders;states=data.states;if($('#status').options.length===1)for(const [key,value] of Object.entries(states))$('#status').add(new Option(value,key));render();$('#updated').textContent='آخرین دریافت: '+date(new Date());$('#notice').textContent='';if(!current){const requested=new URLSearchParams(location.hash.slice(1)).get('order'),order=orders.find(item=>item.id===requested);if(order){detail(order);$('#order-dialog').showModal();if(!order.seenAt){const seen=await api('order',{id:order.id,version:order.version,action:'seen'});detail(seen.order);}}}}catch(error){$('#notice').textContent=error.message;}finally{loading=false;$('#refresh').disabled=false;}}
  const address=value=>`<p>${esc(value.firstName+' '+value.lastName)}</p><p>${esc(value.province+'، '+value.city+'، '+value.address)}${value.unit?'، '+esc(value.unit):''}</p><p>کد پستی: <b dir="ltr">${esc(value.postcode)}</b></p><p>موبایل: <b dir="ltr">${esc(value.phone)}</b></p>`;
  function detail(o){
   current=o;$('#detail-title').textContent='سفارش '+o.id.slice(0,8);$('#detail-error').textContent='';
@@ -27,5 +27,23 @@
  $('#close-dialog').onclick=()=>$('#order-dialog').close();$('#refresh').onclick=load;$('#search').oninput=render;$('#status').onchange=render;$('#unread-only').onchange=render;
  $('#sms-form').onsubmit=async e=>{e.preventDefault();const button=e.target.querySelector('button');button.disabled=true;try{await api('sms',{apiKey:$('#sms-key').value.trim(),template:$('#sms-template').value.trim()});$('#sms-key').value='';$('#key-status').textContent='کلید ذخیره شده است';$('#notice').textContent='تنظیمات پیامک ذخیره شد. نام الگو باید در کاوه‌نگار تایید شده باشد.';}catch(error){$('#notice').textContent=error.message;}finally{button.disabled=false;}};
  api('sms').then(data=>{$('#sms-template').value=data.template;$('#key-status').textContent=data.configured?'کلید ذخیره شده است':'هنوز تنظیم نشده';}).catch(()=>{});
- load();setInterval(()=>{if(!document.hidden&&!$('#order-dialog').open)load();},30000);
+ async function loadNotifications(){
+  try{const data=await api('notifications');$('#notification-summary').textContent=data.channels.some(item=>item.configured)?'تنظیمات هر پیام رسان و نتیجه ارسال را در بخش مربوط بررسی کنید.':'فعلا رباتی متصل نیست. هر زمان ربات‌ها را ساختید، توکن و شناسه عددی گفتگوی خودتان را وارد کنید. شماره موبایل جای شناسه گفتگو نیست.';for(const item of data.channels){
+   const form=document.querySelector('[data-notification="'+item.channel+'"]');if(!form)continue;
+   form.elements.enabled.checked=item.enabled;form.elements.chatId.value=item.chatId;
+   form.querySelector('[data-notification-test]').disabled=!item.configured;
+   form.querySelector('[data-notification-retry]').hidden=!item.counts?.failed;form.querySelector('[data-notification-retry]').disabled=!item.enabled;
+   $('#notification-status-'+item.channel).textContent=!item.configured?'هنوز متصل نشده':!item.enabled?'غیرفعال':item.lastError?'نیازمند بررسی اتصال':item.counts?.pending?'در صف ارسال':'فعال';
+   form.querySelector('[data-notification-result]').textContent=item.lastError||'';
+  }}catch{$('#notification-status-telegram').textContent=$('#notification-status-bale').textContent='دریافت وضعیت انجام نشد';}
+ }
+ document.querySelectorAll('[data-notification]').forEach(form=>{
+  form.onsubmit=async event=>{event.preventDefault();const buttons=[...form.querySelectorAll('button')],disabled=buttons.map(button=>button.disabled);let saved=false;buttons.forEach(button=>button.disabled=true);const result=form.querySelector('[data-notification-result]');
+   try{await api('notifications',{channel:form.dataset.notification,enabled:form.elements.enabled.checked,token:form.elements.token.value.trim(),chatId:form.elements.chatId.value.trim()});form.elements.token.value='';await loadNotifications();saved=true;result.textContent='تنظیمات ذخیره شد. برای بررسی اتصال می‌توانید پیام آزمایشی بفرستید.';}catch(error){result.textContent=error.message;}finally{if(!saved)buttons.forEach((button,index)=>button.disabled=disabled[index]);form.querySelector('button.primary').disabled=false;}
+  };
+  form.querySelector('[data-notification-test]').onclick=async event=>{event.target.disabled=true;const result=form.querySelector('[data-notification-result]');try{await api('notifications/test',{channel:form.dataset.notification});result.textContent='پیام آزمایشی ارسال شد؛ گفتگوی ربات را بررسی کنید.';}catch(error){result.textContent=error.message;}finally{event.target.disabled=false;}};
+  form.querySelector('[data-notification-retry]').onclick=async event=>{event.target.disabled=true;try{await api('notifications/retry',{channel:form.dataset.notification});await loadNotifications();form.querySelector('[data-notification-result]').textContent='اعلان های ناموفق برای ارسال دوباره در صف قرار گرفتند.';}catch(error){form.querySelector('[data-notification-result]').textContent=error.message;}finally{event.target.disabled=false;}};
+ });
+ const refreshVisible=()=>{if(!document.hidden&&!$('#order-dialog').open)load();};
+ load();loadNotifications();setInterval(refreshVisible,5000);document.addEventListener('visibilitychange',refreshVisible);window.addEventListener('focus',refreshVisible);
 })();

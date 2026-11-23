@@ -300,11 +300,13 @@
 
 // Notify the owner while working on products without downloading customer data.
 (()=>{
+ let fetchingOrders=false;
  async function refreshOrderBadge(){
-  if(document.hidden)return;
-  try{const response=await fetch('/admin/api/order-counts',{cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(5000)});if(!response.ok)return;const {unread}=await response.json();if(!Number.isSafeInteger(unread))return;
+  if(document.hidden||fetchingOrders)return;fetchingOrders=true;
+  try{const response=await fetch('/admin/api/order-counts',{cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(5000)});if(!response.ok)throw Error('Orders unavailable');const {unread,counts={}}=await response.json();if(!Number.isSafeInteger(unread))return;
    for(const id of ['nav-orders','top-orders']){const link=document.getElementById(id);if(link)link.textContent=unread?'سفارش ها · '+new Intl.NumberFormat('fa-IR').format(unread)+' تازه':'سفارش ها';}
-  }catch{}
+   const notice=document.getElementById('dashboard-orders-copy');if(notice)notice.textContent=new Intl.NumberFormat('fa-IR').format(counts.received||0)+' سفارش ثبت شده برای بررسی · '+new Intl.NumberFormat('fa-IR').format(unread)+' سفارش دیده نشده';
+  }catch{const notice=document.getElementById?.('dashboard-orders-copy');if(notice)notice.textContent='ارتباط با سفارش ها برقرار نشد؛ برای بررسی یا تلاش دوباره، بخش سفارش ها را باز کنید.';}finally{fetchingOrders=false;}
  }
- refreshOrderBadge();setInterval(refreshOrderBadge,30000);
+ refreshOrderBadge();setInterval(refreshOrderBadge,5000);document.addEventListener('visibilitychange',refreshOrderBadge);window.addEventListener('focus',refreshOrderBadge);
 })();

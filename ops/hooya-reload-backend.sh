@@ -9,6 +9,8 @@ previous=$(cat "$state/.backend-loaded" 2>/dev/null || true)
 [[ $fingerprint != "$previous" ]] || exit 0
 node --check "$target/server/admin-server.mjs"
 node --check "$target/server/orders.mjs"
+# Check imports as well as syntax before replacing a running order service.
+node --input-type=module -e 'const target=process.argv.pop(); await import(target)' "$target/server/admin-server.mjs"
 systemctl restart hooya-admin.service
 for attempt in 1 2 3 4 5; do
  if curl --fail --silent --max-time 5 http://127.0.0.1:18481/api/customer/health >/dev/null; then

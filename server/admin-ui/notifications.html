@@ -1,0 +1,13 @@
+<section class="panel notifications" id="notification-settings" aria-labelledby="notifications-title">
+ <div><h2 id="notifications-title">اعلان سفارش</h2><p>سفارش تازه در این پنل ثبت می‌شود. با اتصال ربات‌ها، اعلان آن در تلگرام و بله هم ارسال می‌شود.</p></div>
+ <p class="subtle" id="notification-summary">فعلا رباتی متصل نیست. هر زمان ربات‌ها را ساختید، توکن و شناسه عددی گفتگوی خودتان را در بخش مربوط وارد کنید. شماره موبایل جای شناسه گفتگو نیست.</p>
+ <div class="notification-channels">
+  <details><summary>تلگرام <small id="notification-status-telegram">در حال دریافت وضعیت…</small></summary>
+   <form data-notification="telegram"><label class="check"><input type="checkbox" name="enabled">اعلان سفارش در تلگرام فعال باشد</label><label>توکن ربات<input name="token" type="password" dir="ltr" autocomplete="new-password" maxlength="225" placeholder="برای حفظ توکن فعلی خالی بگذارید"></label><label>شناسه عددی گفتگو<input name="chatId" dir="ltr" inputmode="text" maxlength="21" autocomplete="off" placeholder="Chat ID"></label><div class="actions"><button class="primary">ذخیره تنظیمات تلگرام</button><button type="button" data-notification-test="telegram" disabled>ارسال پیام آزمایشی</button><button type="button" data-notification-retry="telegram" hidden>ارسال دوباره اعلان های ناموفق</button></div><p role="status" data-notification-result></p></form>
+  </details>
+  <details><summary>بله <small id="notification-status-bale">در حال دریافت وضعیت…</small></summary>
+   <form data-notification="bale"><label class="check"><input type="checkbox" name="enabled">اعلان سفارش در بله فعال باشد</label><label>توکن ربات<input name="token" type="password" dir="ltr" autocomplete="new-password" maxlength="225" placeholder="برای حفظ توکن فعلی خالی بگذارید"></label><label>شناسه عددی گفتگو<input name="chatId" dir="ltr" inputmode="text" maxlength="21" autocomplete="off" placeholder="Chat ID"></label><div class="actions"><button class="primary">ذخیره تنظیمات بله</button><button type="button" data-notification-test="bale" disabled>ارسال پیام آزمایشی</button><button type="button" data-notification-retry="bale" hidden>ارسال دوباره اعلان های ناموفق</button></div><p role="status" data-notification-result></p></form>
+  </details>
+ </div>
+ <p class="subtle">توکن‌ها فقط روی سرور نگهداری می‌شوند و دوباره نمایش داده نمی‌شوند. اعلان شامل کد سفارش، لباس‌ها، مبلغ و لینک ورود به مدیریت است؛ مشخصات و نشانی مشتری داخل پنل باقی می‌ماند. اختلال پیام‌رسان مانع ثبت سفارش نمی‌شود.</p>
+</section>

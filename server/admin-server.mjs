@@ -8,6 +8,7 @@ import {pathToFileURL} from 'node:url';
 import {createOrderStore} from './order-store.mjs';
 import {createOrders,sendKavenegar} from './orders.mjs';
 import {createCatalogPublisher,createFileCatalogStore} from './catalog-publisher.mjs';
+import {createNotifications} from './notifications.mjs';
 
 const derive=promisify(scrypt),COOKIE='__Host-hooya_admin',LOGIN='__Host-hooya_login';
 const digest=value=>createHash('sha256').update(value).digest('hex');
@@ -119,9 +120,12 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(realpathSync(path.resolve(pr
  const secret=(await fs.readFile(path.join(state,'secret'),'utf8')).trim();
  const smsFile=path.join(state,'sms.json');
  const readSmsConfig=async()=>{try{return JSON.parse(await fs.readFile(smsFile,'utf8'));}catch(error){if(error.code==='ENOENT')return {};throw error;}};
- const commerce=createOrders({store:createOrderStore(path.join(state,'orders.sqlite3')),secret,
+ const store=createOrderStore(path.join(state,'orders.sqlite3')),notificationFile=path.join(state,'notifications.json');
+ const notifications=createNotifications({store,readConfig:async()=>{try{return JSON.parse(await fs.readFile(notificationFile,'utf8'));}catch(error){if(error.code==='ENOENT')return {};throw error;}},writeConfig:async config=>{const temporary=notificationFile+'.next';await fs.writeFile(temporary,JSON.stringify(config),{mode:0o600});await fs.rename(temporary,notificationFile);}});
+ const commerce=createOrders({store,secret,notifications,
   readCatalog,
   readSmsConfig,writeSmsConfig:async config=>{const temporary=smsFile+'.next';await fs.writeFile(temporary,JSON.stringify(config),{mode:0o600});await fs.rename(temporary,smsFile);},sendSms:sendKavenegar});
  const server=createAdminServer({credentials,loginTemplate,readAdminFile:name=>fs.readFile(path.join(directory,name)),commerce,catalogPublisher});
+ notifications.start();server.on('close',()=>notifications.stop());
  server.listen(18481,'127.0.0.1',()=>console.log('Hooya administrator sign-in ready on loopback.'));
 }
