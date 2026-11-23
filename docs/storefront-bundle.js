@@ -81,14 +81,15 @@
     }
     throw Error('دریافت مجموعه ممکن نشد.');
   }
-  const latest=(products,count=3)=>[...products].sort((a,b)=>(b.createdAt||b.updatedAt).localeCompare(a.createdAt||a.updatedAt)||b.sku.localeCompare(a.sku,'en',{numeric:true})).slice(0,count);
+  const newest=products=>[...products].sort((a,b)=>Date.parse(b.createdAt||b.updatedAt)-Date.parse(a.createdAt||a.updatedAt)||b.sku.localeCompare(a.sku,'en',{numeric:true}));
+  const latest=(products,count=4)=>newest(products).slice(0,count);
   function photo(p, extra = '') {
     const photoSource=!extra.includes('full-photo')&&p.thumbnail&&safeImage(p.thumbnail)?p.thumbnail:p.image;
     const preview=imagePreviews[photoSource],instant=preview&&safeImage(preview.data)&&/^[a-f0-9]{12}$/.test(preview.version||'');
     const full=imageUrl(photoSource)+(instant?'?v='+preview.version:'');
     return photoSource && safeImage(photoSource) ? `<img class="product-photo custom-photo ${extra}" src="${escape(instant?preview.data:full)}"${instant?' data-full-src="'+escape(full)+'"':''} alt="${escape(p.name)}" loading="lazy">` : `<div class="product-photo photo-${p.photo} ${extra}" role="img" aria-label="${escape(p.name)}"></div>`;
   }
-  window.Hooya = {nextSku,sizeLabels,sizeLabel,detailFields,contentOf,latest,kinds, stories, collections, collectionOf, statuses, escape, normalize, number, safeImage, imageUrl, images, validate,loadCatalog, photo};
+  window.Hooya = {nextSku,sizeLabels,sizeLabel,detailFields,contentOf,newest,latest,kinds, stories, collections, collectionOf, statuses, escape, normalize, number, safeImage, imageUrl, images, validate,loadCatalog, photo};
 })();
 
 ;
@@ -223,7 +224,7 @@
   const price=p=>p.price===null?'برای اطلاعات بیشتر با هویا در ارتباط باشید':H.number(p.price)+' تومان';
   function render(){
     const matching=products.filter(p=>(currentFilter==='all'||p.kind===currentFilter)&&(!currentCollection||H.collectionOf(p)===currentCollection)&&(!query||H.normalize(p.name+' '+p.type+' '+p.tag+' '+p.description+' '+JSON.stringify(H.contentOf(p))+' '+(H.collections[H.collectionOf(p)]||'')).includes(H.normalize(query))));
-    const list=isCatalog?matching:H.latest(products,3);
+    const list=isCatalog?H.newest(matching):H.latest(products,4);
     $('#product-grid').innerHTML=list.map(p=>`<article class="product-card"><div class="product-image-wrap"><button class="product-view" data-product="${p.id}" aria-label="مشاهده ${esc(p.name)}">${H.photo(p)}</button><button class="product-quick" data-product="${p.id}" aria-label="انتخاب ${esc(p.name)}">+</button></div><div class="product-meta"><div><button class="product-name" data-product="${p.id}">${esc(p.name)}</button></div></div><div class="product-bottom"><span class="catalog-price">${p.price!==null?esc(price(p)):''}${p.stock===0?' · ناموجود':''}</span><button data-product="${p.id}">داستان این لباس ←</button></div></article>`).join('');
     $('#empty-state').hidden=!!list.length;
     $('#empty-state').textContent=loadError?'دریافت محصولات ممکن نشد. لطفا صفحه را دوباره بارگذاری کنید.':currentCollection&&!query&&currentFilter==='all'?'در حال حاضر لباسی در این کالکشن برای نمایش نیست.':products.length?'لباسی با این انتخاب پیدا نشد. واژه یا فیلتر دیگری را امتحان کنید.':'مجموعه تازه هویا به‌زودی در اینجا قرار می‌گیرد.';

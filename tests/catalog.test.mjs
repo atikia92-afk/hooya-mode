@@ -21,6 +21,18 @@ test('latest products keep their launch order when old product metadata is edite
   assert.ok(!latest.some(p=>p.id===products[0].id));
   const invalid=clone(seed);invalid.products[0].createdAt='invalid';assert.throws(()=>H.validate(invalid));
 });
+test('all product lists use creation dates, newest first, without changing the catalog',()=>{
+ const H=contract(),products=[
+  {id:'old',sku:'HYA-001',createdAt:'2026-11-01T00:00:00Z',updatedAt:'2099-01-01T00:00:00Z'},
+  {id:'new',sku:'HYA-004',createdAt:'2026-11-22T00:00:00Z'},
+  {id:'tie-first',sku:'HYA-002',createdAt:'2026-11-19T00:00:00Z'},
+  {id:'legacy',sku:'HYA-005',updatedAt:'2026-11-20T00:00:00Z'},
+  {id:'tie-last',sku:'HYA-003',createdAt:'2026-11-19T00:00:00Z'}
+ ];
+ assert.deepEqual(Array.from(H.newest(products),p=>p.id),['new','legacy','tie-last','tie-first','old']);
+ assert.deepEqual(Array.from(H.latest(products),p=>p.id),['new','legacy','tie-last','tie-first']);
+ assert.deepEqual(products.map(p=>p.id),['old','new','tie-first','legacy','tie-last']);
+});
 test('products use the three approved collections and reject unknown collection names',()=>{
   const H=contract();assert.equal(Object.keys(H.collections).length,3);assert.ok(seed.products.every(p=>Object.hasOwn(H.collections,p.collection)));
   for(const value of ['hooya-world','constructor','unknown','',null,{},['persian-garden']]){const c=clone(seed);c.products[0].collection=value;assert.throws(()=>H.validate(c));}

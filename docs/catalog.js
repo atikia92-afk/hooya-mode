@@ -79,12 +79,13 @@
     }
     throw Error('دریافت مجموعه ممکن نشد.');
   }
-  const latest=(products,count=3)=>[...products].sort((a,b)=>(b.createdAt||b.updatedAt).localeCompare(a.createdAt||a.updatedAt)||b.sku.localeCompare(a.sku,'en',{numeric:true})).slice(0,count);
+  const newest=products=>[...products].sort((a,b)=>Date.parse(b.createdAt||b.updatedAt)-Date.parse(a.createdAt||a.updatedAt)||b.sku.localeCompare(a.sku,'en',{numeric:true}));
+  const latest=(products,count=4)=>newest(products).slice(0,count);
   function photo(p, extra = '') {
     const photoSource=!extra.includes('full-photo')&&p.thumbnail&&safeImage(p.thumbnail)?p.thumbnail:p.image;
     const preview=imagePreviews[photoSource],instant=preview&&safeImage(preview.data)&&/^[a-f0-9]{12}$/.test(preview.version||'');
     const full=imageUrl(photoSource)+(instant?'?v='+preview.version:'');
     return photoSource && safeImage(photoSource) ? `<img class="product-photo custom-photo ${extra}" src="${escape(instant?preview.data:full)}"${instant?' data-full-src="'+escape(full)+'"':''} alt="${escape(p.name)}" loading="lazy">` : `<div class="product-photo photo-${p.photo} ${extra}" role="img" aria-label="${escape(p.name)}"></div>`;
   }
-  window.Hooya = {nextSku,sizeLabels,sizeLabel,detailFields,contentOf,latest,kinds, stories, collections, collectionOf, statuses, escape, normalize, number, safeImage, imageUrl, images, validate,loadCatalog, photo};
+  window.Hooya = {nextSku,sizeLabels,sizeLabel,detailFields,contentOf,newest,latest,kinds, stories, collections, collectionOf, statuses, escape, normalize, number, safeImage, imageUrl, images, validate,loadCatalog, photo};
 })();

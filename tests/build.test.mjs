@@ -37,6 +37,16 @@ test('rebuilding pages is repeatable and emits exactly one working bundle and pu
     else new vm.Script(content,{filename:name});
    }
    if(!['about.html','contact.html'].includes(name))assert.equal(scripts.filter(([,attributes])=>attributes.includes('id="catalog-snapshot"')).length,1,name);
+   if(['index.html','products.html'].includes(name)){
+    const catalog=JSON.parse(scripts.find(([,attributes])=>attributes.includes('id="catalog-snapshot"'))[2]);
+    const context={window:{},TextEncoder,Intl,URL};
+    vm.runInNewContext(await readFile(path.join(temporary,'docs','catalog.js'),'utf8'),context);
+    const H=context.window.Hooya,expected=Array.from(name==='index.html'?H.latest(catalog.products,4):H.newest(catalog.products),p=>p.id);
+    const grid=html.slice(html.indexOf('<div class="product-grid" id="product-grid">'),html.indexOf('<p class="empty-state"'));
+    const ids=[...grid.matchAll(/class="product-view" href="products.html\?product=([^"]+)"/g)].map(match=>decodeURIComponent(match[1]));
+    assert.deepEqual(ids,expected,name+' initial HTML must match the interactive list');
+    if(name==='index.html')assert.equal(ids.length,4);
+   }
   }
  }finally{await rm(temporary,{recursive:true,force:true});}
 });

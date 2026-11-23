@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import path from 'node:path';
+import vm from 'node:vm';
 const docs=new URL('./docs/',import.meta.url);
 const adminDirectory=new URL('./server/admin-ui/',import.meta.url);
 // Shared footer markup is rendered into the HTML, with no extra network request.
@@ -54,6 +55,25 @@ for(const bundle of bundles){
 // catalog data only; customer records and browser selections are never embedded.
 const catalog=JSON.parse(await fs.readFile(new URL('products.json',docs),'utf8'));
 catalog.products=catalog.products.filter(p=>p.status==='published');
+// The first HTML response follows the same order as the interactive lists.
+// Rebuild these cards too when a newly published product enters the catalog.
+const contract={window:{},TextEncoder,Intl,URL};
+vm.runInNewContext(await fs.readFile(new URL('catalog.js',docs),'utf8'),contract);
+const H=contract.window.Hooya;
+H.validate(catalog);
+function productCard(p){
+ const href='products.html?product='+encodeURIComponent(p.id),name=H.escape(p.name);
+ const price=(p.price===null?'':H.number(p.price)+' تومان')+(p.stock===0?' · ناموجود':'');
+ return `<article class="product-card"><div class="product-image-wrap"><a class="product-view" href="${href}" aria-label="مشاهده ${name}">${H.photo(p)}</a><a class="product-quick" href="${href}" aria-label="انتخاب ${name}">+</a></div><div class="product-meta"><div><a class="product-name" href="${href}">${name}</a></div></div><div class="product-bottom"><span class="catalog-price">${H.escape(price)}</span><a href="${href}">داستان این لباس ←</a></div></article>`;
+}
+for(const name of ['index.html','products.html']){
+ const file=new URL(name,docs);let html=await fs.readFile(file,'utf8');
+ const start=html.indexOf('<div class="product-grid" id="product-grid">'),end=html.indexOf('<p class="empty-state"',start);
+ if(start<0||end<0)throw new Error('Missing product grid in '+name);
+ const products=name==='index.html'?H.latest(catalog.products,4):H.newest(catalog.products);
+ html=html.slice(0,start)+'<div class="product-grid" id="product-grid">'+products.map(productCard).join('')+'</div>'+html.slice(end);
+ await fs.writeFile(file,html);
+}
 const snapshot='<script id="catalog-snapshot" type="application/json">'+JSON.stringify(catalog).replaceAll('<','\\u003c')+'</script>\n';
 for(const name of ['index.html','products.html','cart.html','checkout.html']){
  const file=new URL(name,docs);let html=await fs.readFile(file,'utf8');

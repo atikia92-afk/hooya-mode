@@ -6,7 +6,7 @@
   const price=p=>p.price===null?'برای اطلاعات بیشتر با هویا در ارتباط باشید':H.number(p.price)+' تومان';
   function render(){
     const matching=products.filter(p=>(currentFilter==='all'||p.kind===currentFilter)&&(!currentCollection||H.collectionOf(p)===currentCollection)&&(!query||H.normalize(p.name+' '+p.type+' '+p.tag+' '+p.description+' '+JSON.stringify(H.contentOf(p))+' '+(H.collections[H.collectionOf(p)]||'')).includes(H.normalize(query))));
-    const list=isCatalog?matching:H.latest(products,3);
+    const list=isCatalog?H.newest(matching):H.latest(products,4);
     $('#product-grid').innerHTML=list.map(p=>`<article class="product-card"><div class="product-image-wrap"><button class="product-view" data-product="${p.id}" aria-label="مشاهده ${esc(p.name)}">${H.photo(p)}</button><button class="product-quick" data-product="${p.id}" aria-label="انتخاب ${esc(p.name)}">+</button></div><div class="product-meta"><div><button class="product-name" data-product="${p.id}">${esc(p.name)}</button></div></div><div class="product-bottom"><span class="catalog-price">${p.price!==null?esc(price(p)):''}${p.stock===0?' · ناموجود':''}</span><button data-product="${p.id}">داستان این لباس ←</button></div></article>`).join('');
     $('#empty-state').hidden=!!list.length;
     $('#empty-state').textContent=loadError?'دریافت محصولات ممکن نشد. لطفا صفحه را دوباره بارگذاری کنید.':currentCollection&&!query&&currentFilter==='all'?'در حال حاضر لباسی در این کالکشن برای نمایش نیست.':products.length?'لباسی با این انتخاب پیدا نشد. واژه یا فیلتر دیگری را امتحان کنید.':'مجموعه تازه هویا به‌زودی در اینجا قرار می‌گیرد.';
