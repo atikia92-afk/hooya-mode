@@ -261,7 +261,13 @@
     try {
       H.validate(catalog);
       const response=await fetch(API,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':$('#admin-csrf').value},body:JSON.stringify({catalog,baseVersion:baseline.version}),signal:AbortSignal.timeout(15000)});
-      const result=await response.json();
+      if(response.status===401||(response.redirected&&new URL(response.url,location.href).pathname==='/admin/login')){$('#publish-login').hidden=false;throw Error('نشست مدیریت منقضی شده است. دوباره وارد شوید؛ تغییرهای محلی شما محفوظ است.');}
+      let result;
+      try{result=await response.json();}catch{
+        if(response.status===413)throw Error('حجم اطلاعات محصولات بیش از حد مجاز است. تعداد یا حجم عکس‌ها را کاهش دهید؛ تغییرهای محلی شما محفوظ است.');
+        if([502,503,504].includes(response.status))throw Error('سرور موقتا پاسخ نمی‌دهد. کمی بعد دوباره ارسال کنید؛ تغییرهای محلی شما محفوظ است.');
+        throw Error('پاسخ معتبر از سرور دریافت نشد. دوباره ارسال کنید؛ تغییرهای محلی شما محفوظ است.');
+      }
       if(!response.ok){if(response.status===401)$('#publish-login').hidden=false;throw Error(result.error||'ارسال انجام نشد. تغییرهای محلی شما محفوظ است.');}
       const next=H.validate(result.catalog);websiteCatalog=H.validate(result.liveCatalog);catalog=next;baseline=clone(next);saveLocal();deploymentPending=result.status!=='live';publishedMessage=deploymentPending?'تغییرها روی سرور ذخیره شدند؛ نمایش آن‌ها در سایت در حال بررسی است.':'انتشار این تغییرها در سایت تایید شد.';render();$('#publish-dialog').close();toast(deploymentPending?'تغییرها ثبت شدند. منتظر تایید انتشار روی سایت باشید.':'انتشار در سایت تایید شد.');if(deploymentPending)confirmWebsiteVersion(next.version);
     }catch(error){$('#publish-error').textContent=error.message||'ارتباط برقرار نشد. اتصال اینترنت را بررسی کنید.';}

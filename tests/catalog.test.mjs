@@ -73,6 +73,7 @@ async function setup(remote=clone(seed),putStatus=200,editId=null,options={}){
     calls.push({url,options});if(url==='../products.json'||url.startsWith('../products.json?v='))return {ok:true,json:async()=>clone(committedCatalog||seed)};
     if(url==='/admin/api/catalog'&&options.method!=='POST')return {ok:true,json:async()=>({catalog:clone(setupOptions.server||seed),liveCatalog:clone(seed)})};
     if(url==='/admin/api/catalog'&&options.method==='POST'){
+      if(setupOptions.nonJson)return {ok:false,status:putStatus,json:async()=>{throw new SyntaxError('JSON.parse: unexpected character at line 1 column 1');}};
       if(putStatus>=400)return {ok:false,status:putStatus,json:async()=>({error:putStatus===401?'نشست مدیریت منقضی شده است. دوباره وارد شوید.':'ذخیره روی سرور انجام نشد.'})};
       const body=JSON.parse(options.body);if(body.baseVersion!==remote.version)return {ok:false,status:409,json:async()=>({error:'محصولات در سیستم دیگری تغییر کرده‌اند.'})};
       const accepted={...body.catalog,version:new Date(Date.parse(remote.version)+1).toISOString()};if(setupOptions.confirmWebsite)committedCatalog=clone(accepted);
@@ -167,6 +168,13 @@ test('failed publication retains local changes and re-enables retry',async()=>{
 });
 test('an expired manager session offers sign-in without losing local product data',async()=>{
  const s=await setup(clone(seed),401);await s.publish();assert.equal(s.element('#publish-login').hidden,false);assert.match(s.element('#publish-error').textContent,/نشست/);assert.equal(JSON.parse([...s.store.values()][0]).catalog.products.length,seed.products.length+1);
+});
+test('HTML proxy errors produce useful messages and preserve the pending price and subtitle',async()=>{
+ for(const status of [413,502,503,504,200]){
+  const s=await setup(clone(seed),status,null,{submit:false,nonJson:true});s.formValues.price='19900000';s.formValues.type='زیرعنوان آزمایشی';s.save();await s.publish();
+  assert.ok(!s.element('#publish-error').textContent.includes('JSON.parse'));assert.match(s.element('#publish-error').textContent,/محفوظ/);
+  const pending=JSON.parse([...s.store.values()][0]);assert.equal(pending.catalog.products[0].price,19900000);assert.equal(pending.catalog.products[0].type,'زیرعنوان آزمایشی');assert.deepEqual(pending.baseline,seed);assert.equal(s.element('#publish-submit').disabled,false);
+ }
 });
 test('a different device reads the accepted catalog from the server before deployment completes',async()=>{
  const server=clone(seed);server.version='2099-01-01T00:00:00.000Z';server.products[0].name='به‌روز شده روی سیستم دیگر';
