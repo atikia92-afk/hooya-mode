@@ -93,7 +93,7 @@
   }
   function readEditor() {
     const f = new FormData($('#product-form')), existing = catalog.products.find(p=>p.id===editingId);
-    const sizes=f.getAll('size'), sizeStock=Object.fromEntries(sizes.map(s=>{const value=f.get('stock-'+s);return [s,value===null||value===''?null:Number(value)];}));
+    const sizes=f.getAll('size'), sizeStock=Object.fromEntries(sizes.map(s=>{const value=f.get(sizes.length===1?'stock':'stock-'+s);return [s,value===null||value===''?null:Number(value)];}));
     const days=key=>{const value=f.get(key);return value===null||value===''?null:Number(value);};
     return {
       id:editingId || 'product-'+crypto.randomUUID(), sku:existing?.sku||String(f.get('sku')||'').trim(), name:String(f.get('name')).trim(),
@@ -101,7 +101,7 @@
       ...(existing?.thumbnail&&editingImage===existing.image?{thumbnail:existing.thumbnail}:{}),
       photo:Number($('#sample-photo').value), image:editingImage, images:editingImages.slice(), colors:String(f.get('colors')).split(/[,،]/).map(s=>s.trim()).filter(Boolean),
       description:String(f.get('description')).trim(), price:f.get('price')===''?null:Number(f.get('price')),
-      stock:Object.values(sizeStock).every(n=>n!==null)?Object.values(sizeStock).reduce((a,b)=>a+b,0):null,
+      stock:sizes.length&&Object.values(sizeStock).every(n=>n!==null)?Object.values(sizeStock).reduce((a,b)=>a+b,0):null,
       sizeStock, madeToOrder:f.get('madeToOrder')==='on', productionDays:days('productionDays'), dispatchDays:days('dispatchDays'),
       narrative:{text:String(f.get('narrativeText')||'').trim(),quote:String(f.get('narrativeQuote')||'').trim(),verse:String(f.get('narrativeVerse')||'').trim()},
       details:{...Object.fromEntries(Object.keys(H.detailFields).map(key=>[key,String(f.get(key)||'').trim()])),embroideryHours:days('embroideryHours'),lengthCm:days('lengthCm'),sizeNotes:Object.fromEntries(sizes.map(size=>[size,String(f.get('fit-'+size)||'').trim()]))},
@@ -112,6 +112,11 @@
   function updatePreview() {
     const p=readEditor(); $('#preview-name').textContent=p.name||'نام محصول شما'; $('#preview-type').textContent=p.type||'جنس و هنر دوخت';
     $('#stock').value=p.stock??'';
+    $('#stock').readOnly=p.sizes.length!==1;
+    $('#stock-label').textContent=p.sizes.length>1?'موجودی کل (جمع سایزها)':'موجودی آماده (عدد)';
+    $('#stock-help').textContent=p.sizes.length===1?'تعداد موجود برای '+H.sizeLabel(p.sizes[0])+'؛ صفر یعنی ناموجود و مقدار خالی یعنی نامشخص.':p.sizes.length?'موجودی هر سایز را جدا ثبت کنید؛ جمع تعدادها اینجا نمایش داده می‌شود.':'ابتدا حداقل یک سایز را انتخاب کنید.';
+    $('#size-inventory').hidden=p.sizes.length<2;
+    $('#edit-size-stock').hidden=p.sizes.length<2;
     $('#preview-price').textContent=p.price===null?'قیمت تعیین نشده':num(p.price)+' تومان';
     $('#save-product').innerHTML=(p.status==='published'?'ذخیره و ادامه انتشار':'ذخیره محصول')+' '+icon('check');
     $('#editor-photo').innerHTML=H.photo({...p,name:p.name||'پیش‌نمایش محصول'});
@@ -129,7 +134,7 @@
     $('#colors').value=p.colors.join(', '); $('#sample-photo').value=p.photo; $('#image-url').value='';
     document.querySelectorAll('[name=size]').forEach(i=>i.checked=p.sizes.includes(i.value));
     $('#madeToOrder').checked=!!p.madeToOrder; $('#productionDays').value=p.productionDays??''; $('#dispatchDays').value=p.dispatchDays??'';
-    renderSizeStock(p.sizeStock||{});renderSizeNotes(content.details.sizeNotes);
+    renderSizeStock(p.sizeStock||(p.sizes.length===1?{[p.sizes[0]]:p.stock}:{}));renderSizeNotes(content.details.sizeNotes);
     $('#form-error').textContent=''; $('#gallery-status').textContent=''; $('#image-file').value=''; renderGallery(); updatePreview(); editorSnapshot=editorFingerprint(); $('#editor').showModal();
   }
   async function closeEditor() {
@@ -137,7 +142,7 @@
     if (editorFingerprint()!==editorSnapshot && !await ask('بستن بدون ذخیره؟','تغییرهای این محصول هنوز ذخیره نشده‌اند.','بستن ویرایشگر')) return;
     $('#editor').close();
   }
-  $('#product-form').addEventListener('input', updatePreview);
+  $('#product-form').addEventListener('input',e=>{if(!e.target.matches('[name=size]'))updatePreview();});
   function renderSizeNotes(values){
     const sizes=[...document.querySelectorAll('[name=size]:checked')].map(i=>i.value);
     $('#size-notes').innerHTML=sizes.map(size=>`<div class="field"><label for="fit-${esc(size)}">راهنمای ${esc(H.sizeLabel(size))}</label><input id="fit-${esc(size)}" name="fit-${esc(size)}" maxlength="300" value="${esc(values[size]||'')}" placeholder="مثلا مناسب تا سایز ۴۴"></div>`).join('');
@@ -145,8 +150,10 @@
   function renderSizeStock(values) {
     const sizes=[...document.querySelectorAll('[name=size]:checked')].map(i=>i.value);
     $('#size-stock').innerHTML=sizes.map(size=>`<label class="size-stock-row"><span dir="ltr">${esc(H.sizeLabel(size))}</span><input name="stock-${esc(size)}" aria-label="موجودی آماده سایز ${esc(size)}" type="number" min="0" max="1000000" step="1" value="${values[size]??''}" placeholder="نامشخص"></label>`).join('');
+    if(sizes.length===1)$('#stock').value=values[sizes[0]]??'';
   }
-  document.querySelectorAll('[name=size]').forEach(input=>input.addEventListener('change',()=>{const values=Object.fromEntries([...document.querySelectorAll('#size-stock input')].map(i=>[i.name.slice(6),i.value]));const notes=Object.fromEntries([...document.querySelectorAll('#size-notes input')].map(i=>[i.name.slice(4),i.value]));renderSizeStock(values);renderSizeNotes(notes);updatePreview();}));
+  document.querySelectorAll('[name=size]').forEach(input=>input.addEventListener('change',()=>{const stocks=[...document.querySelectorAll('#size-stock input')];const values=Object.fromEntries(stocks.map(i=>[i.name.slice(6),i.value]));if(stocks.length===1)values[stocks[0].name.slice(6)]=$('#stock').value;const notes=Object.fromEntries([...document.querySelectorAll('#size-notes input')].map(i=>[i.name.slice(4),i.value]));renderSizeStock(values);renderSizeNotes(notes);updatePreview();}));
+  $('#edit-size-stock').onclick=()=>{$('#size-inventory').scrollIntoView({block:'center',behavior:'smooth'});document.querySelector('#size-stock input')?.focus({preventScroll:true});};
   $('#product-form').onsubmit=e=>{
     e.preventDefault(); if(uploading){formError('عکس‌ها هنوز در حال آماده سازی هستند. کمی صبر کنید.');return;} $('#form-error').textContent='';
     $('#product-form').classList.add('was-validated');

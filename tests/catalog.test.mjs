@@ -66,10 +66,10 @@ async function setup(remote=clone(seed),putStatus=200,editId=null,options={}){
   const elements=new Map(),store=new Map(options.saved?[['hooya-catalog-workspace-v1',JSON.stringify(options.saved)]]:[]),calls=[],handlers=new Map();
   let encodedImages=0,committedCatalog;
   function element(key){if(!elements.has(key))elements.set(key,{value:'',textContent:'',innerHTML:'',hidden:false,disabled:false,open:false,listeners:new Map(),childNodes:[{textContent:''}],classList:{add(){},remove(){},toggle(){}},reset(){},addEventListener(event,handler){this.listeners.set(event,handler);},setAttribute(){},showModal(){this.open=true;},close(){this.open=false;}});return elements.get(key);}
-  const formValues={name:'A new garment',sku:'QA-NEW',kind:'vest',type:'Linen',story:'myth',tag:'Story',description:'A garment',price:'1200000',stock:'4','stock-M':'4',madeToOrder:'on',productionDays:'12',dispatchDays:'2',colors:'#aabbcc',status:'draft'};
+  const formValues={name:'A new garment',sku:'QA-NEW',kind:'vest',type:'Linen',story:'myth',tag:'Story',description:'A garment',price:'1200000',stock:'4','stock-M':'4',madeToOrder:'on',productionDays:'12',dispatchDays:'2',colors:'#aabbcc',status:'draft',...options.formValues};
   element('#sample-photo').value='0';element('#kind-filter').value='all';element('#collection-filter').value='all';element('#collection').value='mythical-creatures';element('#sort').value='newest';
   element('#admin-csrf').value='test-session-proof';
-  const context={window:{addEventListener(){}},document:{querySelector:element,querySelectorAll:()=>[],createElement(tag){assert.equal(tag,'canvas');return {getContext:()=>({fillRect(){},drawImage(){}}),toDataURL:()=> 'data:image/webp;base64,'+Buffer.from('encoded-image-'+ ++encodedImages).toString('base64')};},addEventListener(event,handler){handlers.set(event,handler);}},Image:class{width=100;height=100;async decode(){}},AbortSignal,TextEncoder,TextDecoder,Intl,Date,URL,Blob,crypto:{randomUUID:()=> 'test-id'},setTimeout:()=>0,setInterval:()=>0,clearTimeout(){},btoa:x=>Buffer.from(x,'binary').toString('base64'),atob:x=>Buffer.from(x,'base64').toString('binary'),FormData:class{get(k){if(k==='collection')return element('#collection').value;if(k.startsWith('fit-')&&editId)return seed.products.find(p=>p.id===editId).details?.sizeNotes[k.slice(4)]||'';return formValues[k]??elements.get('#'+k)?.value??'';}getAll(){return editId?seed.products.find(p=>p.id===editId).sizes:['M'];}},localStorage:{getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v)},fetch:async(url,options={})=>{
+  const context={window:{addEventListener(){}},document:{querySelector:element,querySelectorAll:()=>[],createElement(tag){assert.equal(tag,'canvas');return {getContext:()=>({fillRect(){},drawImage(){}}),toDataURL:()=> 'data:image/webp;base64,'+Buffer.from('encoded-image-'+ ++encodedImages).toString('base64')};},addEventListener(event,handler){handlers.set(event,handler);}},Image:class{width=100;height=100;async decode(){}},AbortSignal,TextEncoder,TextDecoder,Intl,Date,URL,Blob,crypto:{randomUUID:()=> 'test-id'},setTimeout:()=>0,setInterval:()=>0,clearTimeout(){},btoa:x=>Buffer.from(x,'binary').toString('base64'),atob:x=>Buffer.from(x,'base64').toString('binary'),FormData:class{get(k){if(k==='collection')return element('#collection').value;if(k.startsWith('fit-')&&editId)return seed.products.find(p=>p.id===editId).details?.sizeNotes[k.slice(4)]||'';return formValues[k]??elements.get('#'+k)?.value??'';}getAll(){if(options.sizes)return options.sizes;return editId?seed.products.find(p=>p.id===editId).sizes:['M'];}},localStorage:{getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v)},fetch:async(url,options={})=>{
     calls.push({url,options});if(url==='../products.json'||url.startsWith('../products.json?v='))return {ok:true,json:async()=>clone(committedCatalog||seed)};
     if(url==='/admin/api/catalog'&&options.method!=='POST')return {ok:true,json:async()=>({catalog:clone(setupOptions.server||seed),liveCatalog:clone(seed)})};
     if(url==='/admin/api/catalog'&&options.method==='POST'){
@@ -179,6 +179,26 @@ test('HTML proxy errors produce useful messages and preserve the pending price a
 test('a different device reads the accepted catalog from the server before deployment completes',async()=>{
  const server=clone(seed);server.version='2099-01-01T00:00:00.000Z';server.products[0].name='به‌روز شده روی سیستم دیگر';
  const s=await setup(clone(seed),200,null,{submit:false,server});assert.match(s.element('#products-region').innerHTML,/به‌روز شده روی سیستم دیگر/);assert.equal(s.element('#open-publish').disabled,true);assert.match(s.element('#sync-title').textContent,/در انتظار/);
+});
+
+test('single-size inventory saves the editable quantity, including zero and an unknown quantity',async()=>{
+ for(const [value,expected] of [['7',7],['0',0],['',null]]){
+  const s=await setup(clone(seed),200,null,{formValues:{stock:value,'stock-M':'99'}});
+  const p=JSON.parse([...s.store.values()][0]).catalog.products[0];
+  assert.equal(p.stock,expected);assert.deepEqual(p.sizeStock,{M:expected});
+ }
+ for(const value of ['-1','1.5']){
+  const s=await setup(clone(seed),200,null,{formValues:{stock:value}});
+  assert.equal(s.store.size,0);assert.ok(s.element('#form-error').textContent);
+ }
+});
+
+test('multiple-size inventory saves each size and calculates a total only when every quantity is known',async()=>{
+ for(const [large,expected] of [['2',7],['0',5],['',null]]){
+  const s=await setup(clone(seed),200,null,{sizes:['M','L'],formValues:{stock:'99','stock-M':'5','stock-L':large}});
+  const p=JSON.parse([...s.store.values()][0]).catalog.products[0];
+  assert.equal(p.stock,expected);assert.deepEqual(p.sizeStock,{M:5,L:large===''?null:Number(large)});
+ }
 });
 
 test('size inventory and preparation times validate without inventing legacy stock',()=>{
