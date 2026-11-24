@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS orders (
  phone TEXT NOT NULL, created_at TEXT NOT NULL, version INTEGER NOT NULL, body TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS orders_phone ON orders(phone, created_at DESC);
+CREATE TABLE IF NOT EXISTS shipping_settings (id INTEGER PRIMARY KEY CHECK(id=1), postage_toman INTEGER, version INTEGER NOT NULL);
+INSERT OR IGNORE INTO shipping_settings VALUES (1,NULL,1);
 CREATE TABLE IF NOT EXISTS rates (key TEXT PRIMARY KEY, count INTEGER NOT NULL, expires INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS otp (
  id TEXT PRIMARY KEY, phone TEXT NOT NULL, hash TEXT NOT NULL, browser TEXT NOT NULL,
@@ -32,7 +34,23 @@ result = None
 with db:
     if op == 'health':
         result = {'available': True}
+    elif op == 'shipping_get':
+        row = db.execute('SELECT postage_toman,version FROM shipping_settings WHERE id=1').fetchone()
+        result = {'postageToman': row['postage_toman'], 'version': row['version']}
+    elif op == 'shipping_set':
+        changed = db.execute('UPDATE shipping_settings SET postage_toman=?,version=version+1 WHERE id=1 AND version=?', (data['postageToman'], data['version']))
+        result = {'updated': changed.rowcount == 1}
     elif op == 'create':
+        db.execute('BEGIN IMMEDIATE')
+        previous = db.execute('SELECT payload_hash,body FROM orders WHERE request_key=?', (data['key'],)).fetchone()
+        if previous:
+            print(json.dumps({'hash': previous['payload_hash'], 'order': json.loads(previous['body'])}, ensure_ascii=False))
+            sys.exit(0)
+        if data.get('shippingVersion') is not None:
+            settings = db.execute('SELECT postage_toman,version FROM shipping_settings WHERE id=1').fetchone()
+            if settings['version'] != data['shippingVersion']:
+                print(json.dumps({'shippingChanged': True, 'shippingSettings': {'postageToman': settings['postage_toman'], 'version': settings['version']}}))
+                sys.exit(0)
         order = data['order']
         inserted = db.execute('INSERT INTO orders VALUES (?,?,?,?,?,?,?) ON CONFLICT(request_key) DO NOTHING',
                    (order['id'], data['key'], data['hash'], order['billing']['phone'], order['createdAt'], 1, json.dumps(order, ensure_ascii=False)))

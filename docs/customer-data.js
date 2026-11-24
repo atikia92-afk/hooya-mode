@@ -22,6 +22,7 @@
     if(value?.country!=='IR')errors[prefix+'.country']='در حال حاضر ارسال فقط داخل ایران انجام می‌شود.';
     return data;
   }
+  const isTehran=address=>address?.province==='تهران'&&String(address?.city||'').trim().replace(/[\s\u200c]/g,'')==='تهران';
   function validate(value){
     const errors={};
     if(!object(value))return {data:null,errors:{form:'اطلاعات فرم معتبر نیست.'}};
@@ -31,7 +32,15 @@
     const notes=typeof value.notes==='string'?value.notes.trim():'';
     if(typeof value.notes!=='string'||notes.length>1000||/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(notes))errors.notes='توضیحات را حداکثر در ۱۰۰۰ حرف وارد کنید.';
     if(value.shippingConsent!==true)errors.shippingConsent='لطفا اطلاع از شرایط ارسال را تایید کنید.';
-    return {data:{billing,shipping,differentShipping,notes,shippingConsent:value.shippingConsent===true},errors};
+    const delivery={};
+    // Absent fields preserve receipts from clients opened before delivery selection existed.
+    if(value.deliveryMethod!==undefined){
+      delivery.deliveryMethod=value.deliveryMethod;delivery.shippingVersion=value.shippingVersion;
+      if(!['post','courier'].includes(value.deliveryMethod))errors.deliveryMethod='روش ارسال را انتخاب کنید.';
+      if(value.deliveryMethod==='courier'&&!isTehran(shipping))errors.deliveryMethod='پیک فقط برای نشانی داخل شهر تهران در دسترس است.';
+      if(!Number.isSafeInteger(value.shippingVersion)||value.shippingVersion<1)errors.deliveryMethod='شرایط ارسال را دوباره دریافت کنید.';
+    }
+    return {data:{billing,shipping,differentShipping,notes,shippingConsent:value.shippingConsent===true,...delivery},errors};
   }
-  root.HooyaCustomer={provinces,digits,validate};
+  root.HooyaCustomer={provinces,digits,validate,isTehran};
 })(typeof window==='undefined'?globalThis:window);

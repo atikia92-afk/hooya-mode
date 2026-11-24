@@ -51,6 +51,8 @@
 @media(max-width:390px){.billing-fields{grid-template-columns:1fr}.billing-field.full{grid-column:auto}.billing-main{width:92%}.billing-summary{padding:20px 14px}}
 
 .billing-form,.shipping-fields{min-width:0}.shipping-fields{margin-inline:0}
+
+.delivery-options label{display:block;margin:14px 0 8px}.delivery-options select{width:100%;min-height:48px;border:1px solid #cfc7bb;border-radius:5px;background:#fff;padding:10px;font:inherit;color:inherit}.delivery-options select:focus{outline:2px solid #a78d64;outline-offset:2px}
 </style><style data-hooya-source="footer.css">/* Shared compact footer and locally served messenger marks. */
 .footer.footer-compact{padding:28px max(5%,calc((100% - 1280px)/2)) 14px;background:#fff;border-top:1px solid #e7e3df;color:#24211e}
 .footer-main{display:grid;grid-template-columns:1fr 1.7fr auto;gap:35px;align-items:start;padding-bottom:22px}
@@ -101,7 +103,7 @@
 <div class="billing-field full"><label for="shipping-unit">آپارتمان، مجتمع، واحد و... <span class="optional">(اختیاری)</span></label><input id="shipping-unit" name="shipping-unit" autocomplete="section-shipping shipping address-line2" aria-describedby="error-shipping-unit"  type="text" maxlength="120" placeholder="آپارتمان، مجتمع، واحد و... (اختیاری)" ><small id="error-shipping-unit" class="billing-error"></small></div>
 <div class="billing-field full"><label for="shipping-postcode">کد پستی <span class="required" aria-hidden="true">*</span></label><input id="shipping-postcode" name="shipping-postcode" autocomplete="section-shipping shipping postal-code" aria-describedby="error-shipping-postcode" required type="text" maxlength="20" placeholder="کد پستی ۱۰ رقمی" dir="ltr" inputmode="numeric"><small id="error-shipping-postcode" class="billing-error"></small></div>
 <div class="billing-field full"><label for="shipping-phone">شماره تلفن همراه <span class="required" aria-hidden="true">*</span></label><input id="shipping-phone" name="shipping-phone" autocomplete="section-shipping shipping tel" aria-describedby="error-shipping-phone" required type="tel" maxlength="25" placeholder="09xxxxxxxxx" dir="ltr" inputmode="tel"><small id="error-shipping-phone" class="billing-error"></small></div></div></fieldset><h2>توضیحات تکمیلی</h2><div class="billing-field billing-notes"><label for="notes">توضیحات سفارش <span class="optional">(اختیاری)</span></label><textarea id="notes" name="notes" rows="4" maxlength="1000" placeholder="یادداشت درباره انتخاب های شما یا نکات مهم تحویل بسته" aria-describedby="error-notes"></textarea><small class="billing-error" id="error-notes"></small></div></section><div class="billing-honeypot" aria-hidden="true"><label for="company-website">وب سایت</label><input id="company-website" name="company-website" tabindex="-1" autocomplete="off"></div></form></div>
- <aside class="billing-summary" aria-labelledby="bill-summary-title"><h2 id="bill-summary-title">انتخاب های شما</h2><div class="bill-table"><table><thead><tr><th scope="col">محصول</th><th scope="col">جمع جزء</th></tr></thead><tbody id="bill-products"></tbody><tfoot><tr><th scope="row">جمع جزء</th><td id="bill-subtotal"></td></tr><tr class="bill-shipping"><th scope="row">ارسال</th><td>پس‌کرایه<br>با اعلام پیش از پرداخت</td></tr><tr class="bill-grand"><th scope="row">مجموع لباس ها</th><td id="bill-total"></td></tr></tfoot></table></div><a class="bill-edit" href="cart.html">ویرایش سبد خرید</a><div class="billing-method"><h3>ثبت اطلاعات برای هماهنگی خرید</h3><p>پرداخت آنلاین هنوز فعال نیست. فعلا فقط مشخصات و انتخاب های شما ثبت می‌شود؛ موجودی، زمان آماده سازی و هزینه ارسال پیش از پرداخت تایید خواهند شد.</p><label class="billing-consent"><input id="shipping-consent" type="checkbox" form="billing-form" required aria-describedby="error-shipping-consent"><span>می‌دانم هزینه ارسال پس‌کرایه است و مبلغ آن پیش از پرداخت به من اعلام می‌شود.</span></label><small id="error-shipping-consent" class="billing-error"></small></div><button id="save-customer" class="billing-save" type="submit" form="billing-form" disabled>ثبت سفارش</button><p class="billing-privacy">اطلاعات شما فقط برای هماهنگی خرید و ارسال نگهداری می‌شود.</p></aside>
+ <aside class="billing-summary" aria-labelledby="bill-summary-title"><h2 id="bill-summary-title">انتخاب های شما</h2><div class="bill-table"><table><thead><tr><th scope="col">محصول</th><th scope="col">جمع جزء</th></tr></thead><tbody id="bill-products"></tbody><tfoot><tr><th scope="row">جمع جزء</th><td id="bill-subtotal"></td></tr><tr class="bill-shipping"><th scope="row">ارسال</th><td id="bill-shipping-cost">در حال دریافت شرایط ارسال</td></tr><tr class="bill-grand"><th scope="row">جمع سفارش</th><td id="bill-total"></td></tr></tfoot></table></div><div class="billing-method delivery-options"><h3>روش ارسال</h3><label for="delivery-method">روش تحویل سفارش</label><select id="delivery-method" form="billing-form" aria-describedby="delivery-help error-delivery-method"><option value="post">ارسال با پست</option><option id="courier-option" value="courier" disabled>پیک — فقط شهر تهران</option></select><p id="delivery-help" role="status">برای انتخاب پیک، استان و شهر گیرنده باید تهران باشد.</p><small id="error-delivery-method" class="billing-error"></small></div><a class="bill-edit" href="cart.html">ویرایش سبد خرید</a><div class="billing-method"><h3>ثبت اطلاعات برای هماهنگی خرید</h3><p>پرداخت آنلاین هنوز فعال نیست. فعلا فقط مشخصات و انتخاب های شما ثبت می‌شود؛ موجودی، زمان آماده سازی و هزینه ارسال پیش از پرداخت تایید خواهند شد.</p><label class="billing-consent"><input id="shipping-consent" type="checkbox" form="billing-form" required aria-describedby="error-shipping-consent"><span>روش ارسال و شرایط هزینه آن را خوانده‌ام و تایید می‌کنم.</span></label><small id="error-shipping-consent" class="billing-error"></small></div><button id="save-customer" class="billing-save" type="submit" form="billing-form" disabled>ثبت سفارش</button><p class="billing-privacy">اطلاعات شما فقط برای هماهنگی خرید و ارسال نگهداری می‌شود.</p></aside>
 </div><noscript><p class="billing-alert">برای نمایش سبد و فرم صورت حساب، جاوااسکریپت مرورگر را فعال کنید.</p></noscript></main>
 <footer class="footer-mini"><div><span>هویا · روایت هایی برای پوشیدن</span><a href="contact.html">ارتباط با هویا</a></div><div class="social-links" aria-label="هویا در شبکه های اجتماعی">
  <a class="social-link" href="https://www.instagram.com/hooya.mode/" target="_blank" rel="noopener noreferrer" aria-label="اینستاگرام هویا" title="اینستاگرام"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.4" cy="6.8" r=".9" fill="currentColor" stroke="none"/></svg></a>
@@ -151,7 +153,7 @@
  scan(document);new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(node=>{if(node.nodeType===1)scan(node);}))).observe(document.body,{childList:true,subtree:true});
 })();
 </script>
-<script data-hooya-bundle="checkout-bundle.js" data-version="77e5e610de5f">/* Generated by node build-storefront.mjs. Edit the source files, then rebuild. */
+<script data-hooya-bundle="checkout-bundle.js" data-version="68344e1d8f59">/* Generated by node build-storefront.mjs. Edit the source files, then rebuild. */
 /* catalog.js */
 /* Shared product contract for the storefront and the editor. No credentials live here. */
 (() => {
@@ -325,6 +327,7 @@
     if(value?.country!=='IR')errors[prefix+'.country']='در حال حاضر ارسال فقط داخل ایران انجام می‌شود.';
     return data;
   }
+  const isTehran=address=>address?.province==='تهران'&&String(address?.city||'').trim().replace(/[\s\u200c]/g,'')==='تهران';
   function validate(value){
     const errors={};
     if(!object(value))return {data:null,errors:{form:'اطلاعات فرم معتبر نیست.'}};
@@ -334,9 +337,17 @@
     const notes=typeof value.notes==='string'?value.notes.trim():'';
     if(typeof value.notes!=='string'||notes.length>1000||/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(notes))errors.notes='توضیحات را حداکثر در ۱۰۰۰ حرف وارد کنید.';
     if(value.shippingConsent!==true)errors.shippingConsent='لطفا اطلاع از شرایط ارسال را تایید کنید.';
-    return {data:{billing,shipping,differentShipping,notes,shippingConsent:value.shippingConsent===true},errors};
+    const delivery={};
+    // Absent fields preserve receipts from clients opened before delivery selection existed.
+    if(value.deliveryMethod!==undefined){
+      delivery.deliveryMethod=value.deliveryMethod;delivery.shippingVersion=value.shippingVersion;
+      if(!['post','courier'].includes(value.deliveryMethod))errors.deliveryMethod='روش ارسال را انتخاب کنید.';
+      if(value.deliveryMethod==='courier'&&!isTehran(shipping))errors.deliveryMethod='پیک فقط برای نشانی داخل شهر تهران در دسترس است.';
+      if(!Number.isSafeInteger(value.shippingVersion)||value.shippingVersion<1)errors.deliveryMethod='شرایط ارسال را دوباره دریافت کنید.';
+    }
+    return {data:{billing,shipping,differentShipping,notes,shippingConsent:value.shippingConsent===true,...delivery},errors};
   }
-  root.HooyaCustomer={provinces,digits,validate};
+  root.HooyaCustomer={provinces,digits,validate,isTehran};
 })(typeof window==='undefined'?globalThis:window);
 
 ;
@@ -350,7 +361,8 @@ window.HooyaCheckoutConfig={endpoints:['/api/customer']};
 (async()=>{
   const H=window.Hooya,C=window.HooyaCart,V=window.HooyaCustomer,$=s=>document.querySelector(s),esc=H.escape;
   const config=window.HooyaCheckoutConfig||{},endpoints=config.endpoints||(config.endpoint?[config.endpoint]:[]),form=$('#billing-form'),button=$('#save-customer');
-  let endpoint='',browserCsrf='';
+  let endpoint='',browserCsrf='',shippingSettings=null;
+  $('#delivery-method').value='post';
   let products=[],lines=[],available=false,submitting=false,requestKey='',lastPayload='';
   const keys=['firstName','lastName','country','province','city','address','unit','postcode','phone'];
   const money=value=>value===null?'در انتظار تعیین قیمت':H.number(value)+' تومان';
@@ -364,7 +376,7 @@ window.HooyaCheckoutConfig={endpoints:['/api/customer']};
   function showErrors(errors){
     let first;
     for(const [path,message] of Object.entries(errors)){
-      const id=path==='shippingConsent'?'shipping-consent':path.replace('.','-'),input=$('#'+id),label=$('#error-'+id);
+      const id=path==='shippingConsent'?'shipping-consent':path==='deliveryMethod'?'delivery-method':path.replace('.','-'),input=$('#'+id),label=$('#error-'+id);
       if(label)label.textContent=message;
       if(input){input.setAttribute('aria-invalid','true');first ||= input;}
     }
@@ -372,18 +384,27 @@ window.HooyaCheckoutConfig={endpoints:['/api/customer']};
   }
   function snapshot(){
     const contact=prefix=>Object.fromEntries(keys.map(key=>[key,$('#'+prefix+'-'+key).value]));
-    return {billing:contact('billing'),differentShipping:$('#different-shipping').checked,shipping:contact('shipping'),notes:$('#notes').value,shippingConsent:$('#shipping-consent').checked};
+    return {billing:contact('billing'),differentShipping:$('#different-shipping').checked,shipping:contact('shipping'),notes:$('#notes').value,shippingConsent:$('#shipping-consent').checked,deliveryMethod:$('#delivery-method').value,shippingVersion:shippingSettings?.version};
   }
   function render(){
     const total=C.totals(lines,products),hasItems=lines.length>0;
     $('#bag-count').textContent=H.number(total.count);$('#bag-open').setAttribute('aria-label','سبد خرید، '+H.number(total.count)+' لباس');
     $('#billing-layout').hidden=!hasItems;$('#billing-empty').hidden=hasItems;button.disabled=!hasItems||!available||submitting;
-    $('#bill-subtotal').textContent=$('#bill-total').textContent=money(total.subtotal);
+    const values=snapshot(),address=values.differentShipping?values.shipping:values.billing,eligible=V.isTehran(address);
+    $('#courier-option').disabled=!eligible;
+    if(values.deliveryMethod==='courier'&&!eligible){$('#delivery-method').value='post';$('#error-delivery-method').textContent='پیک فقط برای شهر تهران است؛ روش ارسال به پست تغییر کرد.';}
+    const courier=$('#delivery-method').value==='courier',fee=courier?0:shippingSettings?.postageToman??null;
+    $('#bill-subtotal').textContent=money(total.subtotal);
+    $('#bill-shipping-cost').textContent=courier?'پرداخت مستقیم به پیک':!shippingSettings?'در حال دریافت':fee===null?'هزینه پست در انتظار تعیین':fee===0?'رایگان':money(fee);
+    $('#bill-total').textContent=money(total.subtotal===null||fee===null?null:total.subtotal+fee);
+    $('#delivery-help').textContent=courier?'هویا پیک را هماهنگ می‌کند؛ هزینه را هنگام تحویل مستقیم به پیک می‌پردازید و در جمع سفارش نیست.':fee===null?'هزینه پست هنوز تعیین نشده است؛ مبلغ نهایی قبل از هماهنگی پرداخت به شما اعلام می‌شود.':'هزینه ثابت پست به جمع سفارش اضافه می‌شود. پیک فقط برای نشانی داخل شهر تهران در دسترس است.';
     $('#bill-products').innerHTML=lines.map(line=>{const p=products.find(p=>p.id===line.id),choice=C.options(p,line.size).find(x=>x.id===line.mode);return `<tr><th scope="row">${esc(p.name)} <b>× ${H.number(line.qty)}</b><small>${esc(H.sizeLabel(line.size))} · ${esc(choice?.label||'')}</small></th><td>${money(p.price===null?null:p.price*line.qty)}</td></tr>`;}).join('');
   }
   $('#different-shipping').onchange=event=>{
-    const enabled=event.target.checked;$('#shipping-fields').hidden=!enabled;$('#shipping-fields').disabled=!enabled;event.target.setAttribute('aria-expanded',String(enabled));
+    const enabled=event.target.checked;$('#shipping-fields').hidden=!enabled;$('#shipping-fields').disabled=!enabled;event.target.setAttribute('aria-expanded',String(enabled));render();
   };
+  form.oninput=()=>{if(products.length&&!submitting)render();};
+  $('#delivery-method').onchange=()=>{clearErrors();render();};
   form.onsubmit=async event=>{
     event.preventDefault();if(submitting)return;clearErrors();
     const result=V.validate(snapshot());if(Object.keys(result.errors).length){showErrors(result.errors);return;}
@@ -401,7 +422,7 @@ window.HooyaCheckoutConfig={endpoints:['/api/customer']};
     try{
       const response=await fetch(endpoint+'/v1/customer-details',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':requestKey,'X-CSRF-Token':browserCsrf},body:payload,credentials:'same-origin',signal:AbortSignal.timeout(20000)});
       const data=await response.json();
-      if(!response.ok){if(data.errors)showErrors(data.errors);else error(data.message||'ثبت اطلاعات انجام نشد. اطلاعات فرم حفظ شده؛ دوباره تلاش کنید.');return;}
+      if(!response.ok){if(data.shippingSettings){shippingSettings=data.shippingSettings;render();}if(data.errors)showErrors(data.errors);else error(data.message||'ثبت اطلاعات انجام نشد. اطلاعات فرم حفظ شده؛ دوباره تلاش کنید.');return;}
       if(data.status!=='received'||typeof data.reference!=='string'||!/^[a-f0-9-]{36}$/.test(data.reference))throw Error('Invalid confirmation');
       $('#customer-reference').textContent=data.reference;$('#billing-layout').hidden=true;$('#billing-status').textContent='';$('#billing-success').hidden=false;form.reset();$('#shipping-fields').disabled=true;$('#shipping-fields').hidden=true;$('#success-title').focus();
       if(typeof data.trackingToken==='string'&&/^[A-Za-z0-9_-]{43}$/.test(data.trackingToken)){
@@ -418,12 +439,14 @@ window.HooyaCheckoutConfig={endpoints:['/api/customer']};
   async function prepareService(){
     try{
       const ready=await Promise.any(endpoints.map(async url=>{
-        const response=await fetch(url+'/health',{cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(8000)});
+        const [response,session,shipping]=await Promise.all(['/health','/v1/session','/v1/shipping'].map(path=>fetch(url+path,{cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(8000)})));
         if(!response.ok||(await response.json()).available!==true)throw Error('Service unavailable');
-        const session=await fetch(url+'/v1/session',{cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(8000)}),data=await session.json();
+        const data=await session.json();
         if(!session.ok||typeof data.csrf!=='string')throw Error('Session unavailable');
-        return {url,csrf:data.csrf};
-      }));endpoint=ready.url;browserCsrf=ready.csrf;return true;
+        const settings=await shipping.json();
+        if(!shipping.ok||!Number.isSafeInteger(settings.version)||settings.postageToman!==null&&(!Number.isSafeInteger(settings.postageToman)||settings.postageToman<0))throw Error('Shipping unavailable');
+        return {url,csrf:data.csrf,settings};
+      }));endpoint=ready.url;browserCsrf=ready.csrf;shippingSettings=ready.settings;return true;
     }catch{return false;}
   }
   const serviceReady=prepareService();
@@ -443,7 +466,7 @@ window.HooyaCheckoutConfig={endpoints:['/api/customer']};
   }
   window.addEventListener('storage',event=>{if(event.key==='hooya-demo-bag'&&products.length&&!submitting&&$('#billing-success').hidden){lines=C.read(products);render();$('#billing-status').textContent='سبد خرید به‌روز شد. انتخاب ها را پیش از ثبت بررسی کنید.';}});
   // Only a verified customer session can restore saved contact information.
-  try{const response=await fetch('/api/customer/v1/orders',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(4000)});if(response.ok){const {orders}=await response.json(),last=orders?.[0];if(last&&!keys.some(key=>!['country','province'].includes(key)&&$('#billing-'+key).value))for(const key of keys)$('#billing-'+key).value=last.billing[key]||'';}}catch{}
+  try{const response=await fetch('/api/customer/v1/orders',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(4000)});if(response.ok){const {orders}=await response.json(),last=orders?.[0];if(last&&!keys.some(key=>!['country','province'].includes(key)&&$('#billing-'+key).value)){for(const key of keys)$('#billing-'+key).value=last.billing[key]||'';render();}}}catch{}
 })();
 </script>
 </body></html>

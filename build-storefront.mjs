@@ -131,6 +131,9 @@ for(const name of ['index.html','products.html','cart.html','checkout.html','abo
 // Keep order management behind the same server session as the catalog editor.
 {
  const file=new URL('orders.html',adminDirectory);let html=await fs.readFile(file,'utf8');
+ const shippingSettings=(await fs.readFile(new URL('shipping-settings.html',adminDirectory),'utf8')).trim();
+ html=html.replace(/<section class="panel" id="shipping-settings"[\s\S]*?<\/section>\s*/g,'');
+ html=html.replace('<details class="panel sms">',()=>shippingSettings+'\n<details class="panel sms">');
  const notifications=(await fs.readFile(new URL('notifications.html',adminDirectory),'utf8')).trim();
  html=html.replace(/<section class="panel notifications" id="notification-settings"[\s\S]*?<\/section>\s*/g,'');
  html=html.replace('<details class="panel sms">',()=>notifications+'\n<details class="panel sms">');

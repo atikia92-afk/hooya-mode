@@ -118,3 +118,55 @@ test('OTP failed attempts and resend limits remain enforced by durable storage',
  for(let i=0;i<5;i++)assert.equal((await app.request('/api/customer/v1/otp/verify',{challenge:sent.data.challenge,code:'000000'},headers)).status,401);
  assert.equal((await app.request('/api/customer/v1/otp/verify',{challenge:sent.data.challenge,code:app.sent[0].code},headers)).status,401);
 });
+
+
+test('postage settings are private to write, durable, validated and protected from concurrent edits',{skip:!enabled},async t=>{
+ const app=await setup(t),route='/admin/api/shipping';
+ assert.deepEqual((await app.request('/api/customer/v1/shipping')).data,{postageToman:null,version:1});
+ assert.equal((await app.request(route)).status,401);
+ assert.equal((await app.request(route,{postageToman:80000,version:1},{Authorization:'test-admin'})).status,403);
+ for(const value of [-1,1.5,100000001,'80000'])assert.equal((await app.admin('shipping',{postageToman:value,version:1})).status,400);
+ assert.equal((await app.admin('shipping',{postageToman:80000,version:1})).status,200);
+ assert.equal((await app.admin('shipping',{postageToman:90000,version:1})).status,409);
+ const restored=createOrderStore(app.database,{python:process.env.HOOYA_TEST_PYTHON||'python3'});
+ assert.deepEqual(await restored('shipping_get'),{postageToman:80000,version:2});
+});
+
+test('post orders capture the authoritative fee, reject stale quotes and include postage in payment',{skip:!enabled},async t=>{
+ const app=await setup(t);await app.admin('shipping',{postageToman:80000,version:1});
+ const data={...payload(),deliveryMethod:'post',shippingVersion:1,shippingFeeToman:1,totalToman:1};
+ assert.equal((await app.submit(data)).status,409);assert.equal((await app.store('list')).length,0);
+ data.shippingVersion=2;const key=randomUUID(),receipt=(await app.submit(data,key)).data;
+ let order=await app.store('get',{id:receipt.reference});assert.equal(order.shippingFeeToman,80000);assert.equal(order.totalToman,180000);
+ await app.admin('shipping',{postageToman:90000,version:2});assert.equal((await app.submit(data,key)).data.reference,order.id);
+ assert.equal((await app.store('get',{id:order.id})).shippingFeeToman,80000);
+ const change=async input=>{const response=await app.admin('order',{id:order.id,version:order.version,...input});if(response.status===200)order=response.data.order;return response;};
+ await change({action:'review',stockConfirmed:true,preparationDays:2,shippingEstimateToman:1,privateNote:''});assert.equal(order.shippingFeeToman,80000);
+ await change({action:'status',status:'reviewing'});assert.equal((await change({action:'status',status:'awaiting_payment'})).status,200);
+ assert.equal((await change({action:'payment',amountToman:100000,reference:'test-payment'})).status,409);
+ assert.equal((await change({action:'payment',amountToman:180000,reference:'test-payment'})).status,200);
+ const tracked=(await app.request('/api/customer/v1/track',{id:order.id,token:receipt.trackingToken})).data.order;
+ assert.equal(tracked.totalToman,180000);assert.equal(tracked.deliveryMethod,'post');
+});
+
+test('courier is Tehran city only, validates the actual recipient and never charges the courier fee to Hooya',{skip:!enabled},async t=>{
+ const app=await setup(t),data={...payload(),deliveryMethod:'courier',shippingVersion:1};
+ data.billing.city='شمیرانات';assert.equal((await app.submit(data)).status,422);
+ data.billing.city='تهران';data.differentShipping=true;data.shipping.city='کرج';assert.equal((await app.submit(data)).status,422);
+ data.shipping.city='تهران';data.shipping.province='البرز';assert.equal((await app.submit(data)).status,422);
+ data.shipping.province='تهران';const receipt=(await app.submit(data)).data;let order=await app.store('get',{id:receipt.reference});
+ assert.equal(order.shippingFeeToman,0);assert.equal(order.totalToman,100000);
+ const change=async input=>{const response=await app.admin('order',{id:order.id,version:order.version,...input});if(response.status===200)order=response.data.order;return response;};
+ await change({action:'review',stockConfirmed:true,preparationDays:0,shippingEstimateToman:null,privateNote:''});
+ await change({action:'status',status:'reviewing'});assert.equal((await change({action:'status',status:'awaiting_payment'})).status,200);
+ assert.equal((await change({action:'payment',amountToman:100000,reference:'test-payment'})).status,200);
+});
+
+test('unset postage is pending, deliberate zero is free, and fee checks are atomic with order creation',{skip:!enabled},async t=>{
+ const app=await setup(t),data={...payload(),deliveryMethod:'post',shippingVersion:1};
+ let receipt=(await app.submit(data)).data,order=await app.store('get',{id:receipt.reference});assert.equal(order.shippingFeeToman,null);assert.equal(order.totalToman,null);
+ await app.admin('shipping',{postageToman:0,version:1});data.shippingVersion=2;receipt=(await app.submit(data)).data;order=await app.store('get',{id:receipt.reference});assert.equal(order.totalToman,100000);
+ const stale={...order,id:randomUUID(),requestKey:randomUUID()};
+ const result=await app.store('create',{key:stale.requestKey,hash:'test',order:stale,shippingVersion:1});
+ assert.equal(result.shippingChanged,true);assert.equal(await app.store('get',{id:stale.id}),null);
+});

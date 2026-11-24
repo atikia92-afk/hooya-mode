@@ -2,7 +2,8 @@
 (async()=>{
   const H=window.Hooya,C=window.HooyaCart,V=window.HooyaCustomer,$=s=>document.querySelector(s),esc=H.escape;
   const config=window.HooyaCheckoutConfig||{},endpoints=config.endpoints||(config.endpoint?[config.endpoint]:[]),form=$('#billing-form'),button=$('#save-customer');
-  let endpoint='',browserCsrf='';
+  let endpoint='',browserCsrf='',shippingSettings=null;
+  $('#delivery-method').value='post';
   let products=[],lines=[],available=false,submitting=false,requestKey='',lastPayload='';
   const keys=['firstName','lastName','country','province','city','address','unit','postcode','phone'];
   const money=value=>value===null?'در انتظار تعیین قیمت':H.number(value)+' تومان';
@@ -16,7 +17,7 @@
   function showErrors(errors){
     let first;
     for(const [path,message] of Object.entries(errors)){
-      const id=path==='shippingConsent'?'shipping-consent':path.replace('.','-'),input=$('#'+id),label=$('#error-'+id);
+      const id=path==='shippingConsent'?'shipping-consent':path==='deliveryMethod'?'delivery-method':path.replace('.','-'),input=$('#'+id),label=$('#error-'+id);
       if(label)label.textContent=message;
       if(input){input.setAttribute('aria-invalid','true');first ||= input;}
     }
@@ -24,18 +25,27 @@
   }
   function snapshot(){
     const contact=prefix=>Object.fromEntries(keys.map(key=>[key,$('#'+prefix+'-'+key).value]));
-    return {billing:contact('billing'),differentShipping:$('#different-shipping').checked,shipping:contact('shipping'),notes:$('#notes').value,shippingConsent:$('#shipping-consent').checked};
+    return {billing:contact('billing'),differentShipping:$('#different-shipping').checked,shipping:contact('shipping'),notes:$('#notes').value,shippingConsent:$('#shipping-consent').checked,deliveryMethod:$('#delivery-method').value,shippingVersion:shippingSettings?.version};
   }
   function render(){
     const total=C.totals(lines,products),hasItems=lines.length>0;
     $('#bag-count').textContent=H.number(total.count);$('#bag-open').setAttribute('aria-label','سبد خرید، '+H.number(total.count)+' لباس');
     $('#billing-layout').hidden=!hasItems;$('#billing-empty').hidden=hasItems;button.disabled=!hasItems||!available||submitting;
-    $('#bill-subtotal').textContent=$('#bill-total').textContent=money(total.subtotal);
+    const values=snapshot(),address=values.differentShipping?values.shipping:values.billing,eligible=V.isTehran(address);
+    $('#courier-option').disabled=!eligible;
+    if(values.deliveryMethod==='courier'&&!eligible){$('#delivery-method').value='post';$('#error-delivery-method').textContent='پیک فقط برای شهر تهران است؛ روش ارسال به پست تغییر کرد.';}
+    const courier=$('#delivery-method').value==='courier',fee=courier?0:shippingSettings?.postageToman??null;
+    $('#bill-subtotal').textContent=money(total.subtotal);
+    $('#bill-shipping-cost').textContent=courier?'پرداخت مستقیم به پیک':!shippingSettings?'در حال دریافت':fee===null?'هزینه پست در انتظار تعیین':fee===0?'رایگان':money(fee);
+    $('#bill-total').textContent=money(total.subtotal===null||fee===null?null:total.subtotal+fee);
+    $('#delivery-help').textContent=courier?'هویا پیک را هماهنگ می‌کند؛ هزینه را هنگام تحویل مستقیم به پیک می‌پردازید و در جمع سفارش نیست.':fee===null?'هزینه پست هنوز تعیین نشده است؛ مبلغ نهایی قبل از هماهنگی پرداخت به شما اعلام می‌شود.':'هزینه ثابت پست به جمع سفارش اضافه می‌شود. پیک فقط برای نشانی داخل شهر تهران در دسترس است.';
     $('#bill-products').innerHTML=lines.map(line=>{const p=products.find(p=>p.id===line.id),choice=C.options(p,line.size).find(x=>x.id===line.mode);return `<tr><th scope="row">${esc(p.name)} <b>× ${H.number(line.qty)}</b><small>${esc(H.sizeLabel(line.size))} · ${esc(choice?.label||'')}</small></th><td>${money(p.price===null?null:p.price*line.qty)}</td></tr>`;}).join('');
   }
   $('#different-shipping').onchange=event=>{
-    const enabled=event.target.checked;$('#shipping-fields').hidden=!enabled;$('#shipping-fields').disabled=!enabled;event.target.setAttribute('aria-expanded',String(enabled));
+    const enabled=event.target.checked;$('#shipping-fields').hidden=!enabled;$('#shipping-fields').disabled=!enabled;event.target.setAttribute('aria-expanded',String(enabled));render();
   };
+  form.oninput=()=>{if(products.length&&!submitting)render();};
+  $('#delivery-method').onchange=()=>{clearErrors();render();};
   form.onsubmit=async event=>{
     event.preventDefault();if(submitting)return;clearErrors();
     const result=V.validate(snapshot());if(Object.keys(result.errors).length){showErrors(result.errors);return;}
@@ -53,7 +63,7 @@
     try{
       const response=await fetch(endpoint+'/v1/customer-details',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':requestKey,'X-CSRF-Token':browserCsrf},body:payload,credentials:'same-origin',signal:AbortSignal.timeout(20000)});
       const data=await response.json();
-      if(!response.ok){if(data.errors)showErrors(data.errors);else error(data.message||'ثبت اطلاعات انجام نشد. اطلاعات فرم حفظ شده؛ دوباره تلاش کنید.');return;}
+      if(!response.ok){if(data.shippingSettings){shippingSettings=data.shippingSettings;render();}if(data.errors)showErrors(data.errors);else error(data.message||'ثبت اطلاعات انجام نشد. اطلاعات فرم حفظ شده؛ دوباره تلاش کنید.');return;}
       if(data.status!=='received'||typeof data.reference!=='string'||!/^[a-f0-9-]{36}$/.test(data.reference))throw Error('Invalid confirmation');
       $('#customer-reference').textContent=data.reference;$('#billing-layout').hidden=true;$('#billing-status').textContent='';$('#billing-success').hidden=false;form.reset();$('#shipping-fields').disabled=true;$('#shipping-fields').hidden=true;$('#success-title').focus();
       if(typeof data.trackingToken==='string'&&/^[A-Za-z0-9_-]{43}$/.test(data.trackingToken)){
@@ -70,12 +80,14 @@
   async function prepareService(){
     try{
       const ready=await Promise.any(endpoints.map(async url=>{
-        const response=await fetch(url+'/health',{cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(8000)});
+        const [response,session,shipping]=await Promise.all(['/health','/v1/session','/v1/shipping'].map(path=>fetch(url+path,{cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(8000)})));
         if(!response.ok||(await response.json()).available!==true)throw Error('Service unavailable');
-        const session=await fetch(url+'/v1/session',{cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(8000)}),data=await session.json();
+        const data=await session.json();
         if(!session.ok||typeof data.csrf!=='string')throw Error('Session unavailable');
-        return {url,csrf:data.csrf};
-      }));endpoint=ready.url;browserCsrf=ready.csrf;return true;
+        const settings=await shipping.json();
+        if(!shipping.ok||!Number.isSafeInteger(settings.version)||settings.postageToman!==null&&(!Number.isSafeInteger(settings.postageToman)||settings.postageToman<0))throw Error('Shipping unavailable');
+        return {url,csrf:data.csrf,settings};
+      }));endpoint=ready.url;browserCsrf=ready.csrf;shippingSettings=ready.settings;return true;
     }catch{return false;}
   }
   const serviceReady=prepareService();
@@ -95,5 +107,5 @@
   }
   window.addEventListener('storage',event=>{if(event.key==='hooya-demo-bag'&&products.length&&!submitting&&$('#billing-success').hidden){lines=C.read(products);render();$('#billing-status').textContent='سبد خرید به‌روز شد. انتخاب ها را پیش از ثبت بررسی کنید.';}});
   // Only a verified customer session can restore saved contact information.
-  try{const response=await fetch('/api/customer/v1/orders',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(4000)});if(response.ok){const {orders}=await response.json(),last=orders?.[0];if(last&&!keys.some(key=>!['country','province'].includes(key)&&$('#billing-'+key).value))for(const key of keys)$('#billing-'+key).value=last.billing[key]||'';}}catch{}
+  try{const response=await fetch('/api/customer/v1/orders',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(4000)});if(response.ok){const {orders}=await response.json(),last=orders?.[0];if(last&&!keys.some(key=>!['country','province'].includes(key)&&$('#billing-'+key).value)){for(const key of keys)$('#billing-'+key).value=last.billing[key]||'';render();}}}catch{}
 })();

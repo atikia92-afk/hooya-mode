@@ -12,6 +12,7 @@ async function setup({health=true,postStatus=201}={}){
  const context={window:{addEventListener(){},HooyaCheckoutConfig:{endpoints:['/api/customer']}},document:{querySelector:element,querySelectorAll:()=>[],createElement:()=>({})},localStorage:{getItem:key=>stored.get(key)||null,setItem:(key,value)=>stored.set(key,value)},sessionStorage:{getItem:key=>session.get(key)||null,setItem:(key,value)=>session.set(key,value),removeItem:key=>session.delete(key)},TextEncoder,Intl,URL,URLSearchParams,AbortSignal,crypto:{randomUUID,subtle:webcrypto.subtle},setTimeout:()=>0,clearTimeout(){},fetch:async(url,options={})=>{
   requests.push({url,options});let data={},status=200;
   if(url.endsWith('/health')){status=serviceAvailable?200:503;data={available:serviceAvailable};}
+  else if(url.endsWith('/v1/shipping'))data={postageToman:80000,version:1};
   else if(url.endsWith('/v1/session'))data={csrf:'browser-session-proof'};
   else if(url.endsWith('/v1/customer-details')){status=postStatus;data=postStatus===201?{status:'received',reference,trackingToken:'A'.repeat(43)}:{message:'سرویس موقتا در دسترس نیست.'};}
   else status=401;
@@ -38,4 +39,17 @@ test('a failed server submission keeps the form and cart and retries the same id
 });
 test('a temporarily unavailable service can reconnect without reloading or losing the form',async()=>{
  const app=await setup({health:false});assert.equal(app.element('#save-customer').disabled,true);await app.connect();assert.equal(app.element('#billing-firstName').value,'آزمون');assert.equal(app.element('#save-customer').disabled,false);await app.submit();assert.equal(app.element('#billing-success').hidden,false);
+});
+
+
+test('checkout displays postage in total and courier separately; changing recipient disables courier',async()=>{
+ const app=await setup();app.element('#billing-form').oninput();
+ assert.match(app.element('#bill-shipping-cost').textContent,/۸۰٬۰۰۰/);
+ assert.match(app.element('#bill-total').textContent,/۱۷٬۸۸۰٬۰۰۰/);
+ app.element('#delivery-method').value='courier';app.element('#delivery-method').onchange();
+ assert.match(app.element('#bill-shipping-cost').textContent,/پرداخت مستقیم/);
+ assert.match(app.element('#bill-total').textContent,/۱۷٬۸۰۰٬۰۰۰/);
+ app.element('#billing-city').value='کرج';app.element('#billing-form').oninput();
+ assert.equal(app.element('#courier-option').disabled,true);assert.equal(app.element('#delivery-method').value,'post');
+ assert.match(app.element('#error-delivery-method').textContent,/تغییر کرد/);
 });

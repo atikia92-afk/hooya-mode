@@ -4,3 +4,5 @@
 @media(max-width:390px){.billing-fields{grid-template-columns:1fr}.billing-field.full{grid-column:auto}.billing-main{width:92%}.billing-summary{padding:20px 14px}}
 
 .billing-form,.shipping-fields{min-width:0}.shipping-fields{margin-inline:0}
+
+.delivery-options label{display:block;margin:14px 0 8px}.delivery-options select{width:100%;min-height:48px;border:1px solid #cfc7bb;border-radius:5px;background:#fff;padding:10px;font:inherit;color:inherit}.delivery-options select:focus{outline:2px solid #a78d64;outline-offset:2px}

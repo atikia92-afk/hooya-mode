@@ -58,6 +58,13 @@ export function createOrders({store,secret,readCatalog,readSmsConfig,writeSmsCon
    if(admin){adminSession=authorize(req);if(!adminSession)throw fail('ورود به مدیریت لازم است.',401);if(req.method!=='GET'){if(!origin(req)&&req.headers.origin!=='null')throw fail('درخواست مجاز نیست.',403);checkCsrf(req,adminSession.csrf);}}
    else if(req.method==='POST'&&!origin(req)&&!(req.headers.origin==='null'&&(path==='/api/customer/v1/track'||csrf(req)&&equal(req.headers['x-csrf-token'],csrf(req)))))throw fail('درخواست مجاز نیست.',403);
    if(path==='/api/customer/health'&&req.method==='GET'){await store('health');json(res,200,{available:true,orders:true});return true;}
+   if((path==='/api/customer/v1/shipping'||path==='/admin/api/shipping')&&req.method==='GET'){json(res,200,await store('shipping_get'));return true;}
+   if(path==='/admin/api/shipping'&&req.method==='POST'){
+    const input=await body(req);
+    if(!Number.isSafeInteger(input.version)||input.version<1||input.postageToman!==null&&(!Number.isSafeInteger(input.postageToman)||input.postageToman<0||input.postageToman>100000000))throw fail('هزینه پست را به تومان و با عدد معتبر وارد کنید.');
+    if(!(await store('shipping_set',input)).updated)throw fail('تنظیمات همزمان تغییر کرده است. صفحه را تازه کنید.',409);
+    json(res,200,await store('shipping_get'));return true;
+   }
    if(path==='/api/customer/v1/catalog'&&req.method==='GET'){const catalog=await readCatalog();json(res,200,{...catalog,products:catalog.products.filter(p=>p.status==='published')});return true;}
    if(path==='/api/customer/v1/customer-details'&&req.method==='POST'){
     const key=req.headers['idempotency-key'];if(!uuid.test(key||''))throw fail('شناسه درخواست معتبر نیست.');
@@ -69,8 +76,11 @@ export function createOrders({store,secret,readCatalog,readSmsConfig,writeSmsCon
     await rate(req,'intake',10,3600000);
     const items=selectItems(input.items,(await readCatalog()).products),createdAt=new Date(now()).toISOString();
     const subtotal=items.every(x=>Number.isSafeInteger(x.unitPriceToman)&&x.unitPriceToman>=0)?items.reduce((sum,x)=>sum+x.qty*x.unitPriceToman,0):null;
-    const order={id:randomUUID(),requestKey:key,payloadHash,...validated.data,items,subtotalToman:subtotal,status:'received',payment:{status:'unpaid'},stockConfirmed:false,preparationDays:null,shippingEstimateToman:null,shippingMethod:'postpaid',quoteAcceptedVersion:null,privateNote:'',seenAt:null,createdAt,updatedAt:createdAt,version:1,history:[{at:createdAt,status:'received',label:'سفارش دریافت شد',note:'موجودی، زمان آماده سازی و هزینه ارسال پیش از پرداخت تایید می‌شود.'}]};
-    const saved=await store('create',{key,hash:payloadHash,order,channels:notifications?await notifications.channels():[]});if(saved.hash!==payloadHash)throw fail('اطلاعات این درخواست تغییر کرده است.',409);
+    const delivery=validated.data.deliveryMethod,settings=delivery?await store('shipping_get'):null;
+    const shippingFee=delivery==='courier'?0:settings?.postageToman??null;
+    const deliveryData=delivery?{shippingFeeToman:shippingFee,totalToman:subtotal===null||shippingFee===null?null:subtotal+shippingFee}:{};
+    const order={id:randomUUID(),requestKey:key,payloadHash,...validated.data,items,subtotalToman:subtotal,...deliveryData,status:'received',payment:{status:'unpaid'},stockConfirmed:false,preparationDays:null,shippingEstimateToman:delivery==='post'?shippingFee:null,shippingMethod:delivery==='post'?'prepaid':'postpaid',quoteAcceptedVersion:null,privateNote:'',seenAt:null,createdAt,updatedAt:createdAt,version:1,history:[{at:createdAt,status:'received',label:'سفارش دریافت شد',note:delivery==='courier'?'ارسال با پیک در شهر تهران؛ هماهنگی با هویا و پرداخت هزینه مستقیم به پیک.':delivery==='post'?'ارسال با پست؛ هزینه '+(shippingFee===null?'در انتظار تعیین و تایید قبل از پرداخت است.':shippingFee+' تومان به جمع سفارش اضافه شد.'):'موجودی، زمان آماده سازی و هزینه ارسال پیش از پرداخت تایید می‌شود.'}]};
+    const saved=await store('create',{key,hash:payloadHash,order,...(delivery==='post'?{shippingVersion:validated.data.shippingVersion}:{}),channels:notifications?await notifications.channels():[]});if(saved.shippingChanged){json(res,409,{message:'هزینه پست تغییر کرده است. مبلغ جدید را بررسی و دوباره ثبت کنید.',shippingSettings:saved.shippingSettings});return true;}if(saved.hash!==payloadHash)throw fail('اطلاعات این درخواست تغییر کرده است.',409);
     json(res,201,receipt(saved.order));notifications?.kick();return true;
    }
    if(path==='/api/customer/v1/session'&&req.method==='GET'){
@@ -133,11 +143,18 @@ export function createOrders({store,secret,readCatalog,readSmsConfig,writeSmsCon
      if(!['received','reviewing','awaiting_payment'].includes(order.status)||order.payment.status==='paid')throw fail('این سفارش در مرحله ویرایش نیست.',409);
      for(const name of ['preparationDays','shippingEstimateToman'])if(input[name]!==null&&(!Number.isSafeInteger(input[name])||input[name]<0||input[name]>(name==='preparationDays'?365:100000000)))throw fail('زمان یا هزینه ارسال معتبر نیست.');
      if(typeof input.privateNote!=='string'||input.privateNote.length>2000)throw fail('یادداشت داخلی بیش از حد طولانی است.');
-     order.stockConfirmed=input.stockConfirmed===true;order.preparationDays=input.preparationDays;order.shippingEstimateToman=input.shippingEstimateToman;order.privateNote=input.privateNote;order.quoteAcceptedVersion=null;
-     event(order,'شرایط آماده سازی به‌روز شد',`${order.preparationDays===null?'زمان آماده سازی در انتظار تایید است.':'زمان آماده سازی: '+order.preparationDays+' روز.'} ارسال به صورت پس‌کرایه است.`);
+     order.stockConfirmed=input.stockConfirmed===true;order.preparationDays=input.preparationDays;order.shippingEstimateToman=input.shippingEstimateToman;
+     if(order.deliveryMethod==='post'){
+      // A captured fixed fee never changes with later global settings or review input.
+      if(order.shippingFeeToman===null)order.shippingFeeToman=input.shippingEstimateToman;
+      order.shippingEstimateToman=order.shippingFeeToman;
+      order.totalToman=order.subtotalToman===null||order.shippingFeeToman===null?null:order.subtotalToman+order.shippingFeeToman;
+     }
+     order.privateNote=input.privateNote;order.quoteAcceptedVersion=null;
+     event(order,'شرایط آماده سازی به‌روز شد',`${order.preparationDays===null?'زمان آماده سازی در انتظار تایید است.':'زمان آماده سازی: '+order.preparationDays+' روز.'} ${order.deliveryMethod==='post'?'ارسال با پست: '+(order.shippingFeeToman===null?'در انتظار تعیین هزینه.':order.shippingFeeToman+' تومان همراه سفارش.'):order.deliveryMethod==='courier'?'پیک توسط هویا هماهنگ می‌شود؛ هزینه مستقیم به پیک پرداخت می‌شود.':'ارسال به صورت پس‌کرایه است.'}`);
     }else if(input.action==='status'){
      if(!moves[order.status]?.includes(input.status))throw fail('این تغییر وضعیت مجاز نیست.',409);
-     if(input.status==='awaiting_payment'&&(!order.stockConfirmed||order.preparationDays===null||order.shippingEstimateToman===null||order.subtotalToman===null))throw fail('موجودی، زمان آماده سازی و برآورد پس‌کرایه را ابتدا تکمیل کنید.',409);
+     if(input.status==='awaiting_payment'&&(!order.stockConfirmed||order.preparationDays===null||(order.deliveryMethod==='courier'?false:order.deliveryMethod==='post'?order.shippingFeeToman===null:order.shippingEstimateToman===null)||order.subtotalToman===null))throw fail('موجودی، زمان آماده سازی و هزینه ارسال را ابتدا تکمیل کنید.',409);
      if(input.status==='preparing'&&order.payment.status!=='paid')throw fail('ابتدا دریافت وجه باید ثبت شود.',409);
      if(input.status==='cancelled'&&order.payment.status==='paid')throw fail('سفارش پرداخت شده به بررسی و ثبت بازپرداخت نیاز دارد. از لغو مستقیم استفاده نکنید.',409);
      if(input.status==='shipped'){
@@ -146,7 +163,7 @@ export function createOrders({store,secret,readCatalog,readSmsConfig,writeSmsCon
      }
      order.status=input.status;event(order,states[order.status]);
     }else if(input.action==='payment'){
-     if(order.status!=='awaiting_payment'||order.payment.status==='paid'||input.amountToman!==order.subtotalToman||typeof input.reference!=='string'||input.reference.trim().length<4||input.reference.length>120)throw fail('مبلغ و شناسه دریافت وجه را بررسی کنید.',409);
+     if(order.status!=='awaiting_payment'||order.payment.status==='paid'||input.amountToman!==(order.deliveryMethod?order.totalToman:order.subtotalToman)||typeof input.reference!=='string'||input.reference.trim().length<4||input.reference.length>120)throw fail('مبلغ و شناسه دریافت وجه را بررسی کنید.',409);
      order.payment={status:'paid',method:'manual',amountToman:input.amountToman,reference:input.reference.trim(),at:new Date(now()).toISOString()};event(order,'دریافت وجه به صورت دستی ثبت شد','این تایید توسط مدیریت ثبت شده است.');
     }else throw fail('عملیات معتبر نیست.');
     await update(order,version);const {requestKey,payloadHash,...result}=order;json(res,200,{order:result});return true;
